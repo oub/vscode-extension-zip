@@ -1,0 +1,371 @@
+{
+  "name": "zip",
+  "displayName": "Zip",
+  "description": "Create, extract, preview, and edit zip and zip-based files in VS Code.",
+  "version": "0.0.1",
+  "publisher": "oub",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oub/vscode-extension-zip"
+  },
+  "homepage": "https://github.com/oub/vscode-extension-zip",
+  "bugs": {
+    "url": "https://github.com/oub/vscode-extension-zip/issues"
+  },
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "icon": "media/icon.png",
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "zip",
+    "unzip",
+    "editor",
+    "archive",
+    "zip-based"
+  ],
+  "activationEvents": [
+    "onFileSystem:zip-kit-entry"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "ZipKit",
+      "properties": {
+        "zipKit.zipFileExtensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            ".zip"
+          ],
+          "scope": "window",
+          "markdownDescription": "File extensions that are treated as zip files by the Explorer context menu and the file dialogs. For example, add `.vsix` or `.jar` to unzip and browse those files.\n\nTo also open them in the Zip Explorer when clicking them, associate them with this extension using `#workbench.editorAssociations#`, for example `\"*.vsix\": \"zipKit.zipEditor\"`."
+        }
+      }
+    },
+    "customEditors": [
+      {
+        "viewType": "zipKit.zipEditor",
+        "displayName": "Zip Explorer",
+        "priority": "default",
+        "selector": [
+          {
+            "filenamePattern": "*.zip"
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "zipKit.zip",
+        "title": "Zip...",
+        "category": "ZipKit"
+      },
+      {
+        "command": "zipKit.zip.files",
+        "title": "Zip Files...",
+        "category": "ZipKit"
+      },
+      {
+        "command": "zipKit.zip.folders",
+        "title": "Zip Folders...",
+        "category": "ZipKit"
+      },
+      {
+        "command": "zipKit.unzip",
+        "title": "Unzip...",
+        "category": "ZipKit"
+      },
+      {
+        "command": "zipKit.unzip.file",
+        "title": "Unzip File...",
+        "category": "ZipKit"
+      },
+      {
+        "command": "zipKit.open",
+        "title": "Open in Zip Explorer",
+        "category": "ZipKit"
+      },
+      {
+        "command": "zipKit.open.file",
+        "title": "Open Zip File...",
+        "category": "ZipKit",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "zipKit.openContainingZip",
+        "title": "Go to Containing Zip File",
+        "category": "ZipKit",
+        "icon": "$(file-symlink-file)",
+        "enablement": "resourceScheme === 'zip-kit-entry'"
+      },
+      {
+        "command": "zipKit.view.refresh",
+        "title": "Reload",
+        "category": "ZipKit",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "zipKit.view.close",
+        "title": "Close",
+        "category": "ZipKit",
+        "icon": "$(close)"
+      },
+      {
+        "command": "zipKit.view.pin",
+        "title": "Pin",
+        "category": "ZipKit",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "zipKit.view.unpin",
+        "title": "Unpin",
+        "category": "ZipKit",
+        "icon": "$(pinned)"
+      },
+      {
+        "command": "zipKit.view.unzip",
+        "title": "Unzip...",
+        "category": "ZipKit",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "zipKit.view.newFile",
+        "title": "New File...",
+        "category": "ZipKit",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "zipKit.view.newFolder",
+        "title": "New Folder...",
+        "category": "ZipKit",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "zipKit.view.rename",
+        "title": "Rename or Move...",
+        "category": "ZipKit",
+        "icon": "$(rename)"
+      },
+      {
+        "command": "zipKit.view.delete",
+        "title": "Delete",
+        "category": "ZipKit",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "zipKit.view.enableReadOnly",
+        "title": "Make Read-only",
+        "category": "ZipKit",
+        "icon": "$(unlock)"
+      },
+      {
+        "command": "zipKit.view.disableReadOnly",
+        "title": "Allow Modifications",
+        "category": "ZipKit",
+        "icon": "$(lock)"
+      }
+    ],
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "id": "zipKit",
+          "title": "Zip Explorer",
+          "icon": "$(file-zip)"
+        }
+      ]
+    },
+    "views": {
+      "zipKit": [
+        {
+          "id": "zipKit.entries",
+          "name": "Zip Explorer",
+          "icon": "$(file-zip)",
+          "contextualTitle": "Zip Explorer"
+        }
+      ]
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "zipKit.open",
+          "when": "false"
+        },
+        {
+          "command": "zipKit.view.close",
+          "when": "false"
+        },
+        {
+          "command": "zipKit.view.pin",
+          "when": "false"
+        },
+        {
+          "command": "zipKit.view.unpin",
+          "when": "false"
+        },
+        {
+          "command": "zipKit.view.enableReadOnly",
+          "when": "false"
+        },
+        {
+          "command": "zipKit.view.disableReadOnly",
+          "when": "false"
+        },
+        {
+          "command": "zipKit.view.unzip",
+          "when": "false"
+        },
+        {
+          "command": "zipKit.view.newFile",
+          "when": "false"
+        },
+        {
+          "command": "zipKit.view.newFolder",
+          "when": "false"
+        },
+        {
+          "command": "zipKit.view.rename",
+          "when": "false"
+        },
+        {
+          "command": "zipKit.view.delete",
+          "when": "false"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "zipKit.open",
+          "group": "navigation@40",
+          "when": "resourceExtname in zipKit.zipFileExtensions"
+        },
+        {
+          "command": "zipKit.zip",
+          "group": "7_modification",
+          "when": "!(resourceExtname in zipKit.zipFileExtensions)"
+        },
+        {
+          "command": "zipKit.unzip",
+          "group": "7_modification",
+          "when": "resourceExtname in zipKit.zipFileExtensions"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "zipKit.openContainingZip",
+          "group": "navigation",
+          "when": "resourceScheme == zip-kit-entry"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "zipKit.openContainingZip",
+          "group": "2_files",
+          "when": "resourceScheme == zip-kit-entry"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "zipKit.open.file",
+          "group": "navigation@1",
+          "when": "view == zipKit.entries"
+        },
+        {
+          "command": "zipKit.view.refresh",
+          "group": "navigation@2",
+          "when": "view == zipKit.entries"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "zipKit.view.pin",
+          "group": "inline@1",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKitRootUnpinned/"
+        },
+        {
+          "command": "zipKit.view.unpin",
+          "group": "inline@1",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKitRootPinned/"
+        },
+        {
+          "command": "zipKit.view.close",
+          "group": "inline@2",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKitRoot/"
+        },
+        {
+          "command": "zipKit.view.pin",
+          "group": "1_pin@1",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKitRootUnpinned/"
+        },
+        {
+          "command": "zipKit.view.unpin",
+          "group": "1_pin@1",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKitRootPinned/"
+        },
+        {
+          "command": "zipKit.view.close",
+          "group": "1_pin@2",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKitRoot/"
+        },
+        {
+          "command": "zipKit.view.enableReadOnly",
+          "group": "0_lock",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKitRoot(Pinned|Unpinned)Editable$/"
+        },
+        {
+          "command": "zipKit.view.disableReadOnly",
+          "group": "0_lock",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKitRoot(Pinned|Unpinned)ReadOnly$/"
+        },
+        {
+          "command": "zipKit.view.newFile",
+          "group": "1_create@1",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKit(Root(Pinned|Unpinned)Editable|FolderEditable)$/"
+        },
+        {
+          "command": "zipKit.view.newFolder",
+          "group": "1_create@2",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKit(Root(Pinned|Unpinned)Editable|FolderEditable)$/"
+        },
+        {
+          "command": "zipKit.view.unzip",
+          "group": "9_unzip",
+          "when": "view == zipKit.entries"
+        },
+        {
+          "command": "zipKit.view.rename",
+          "group": "3_modification@1",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKit(Folder|File)Editable$/"
+        },
+        {
+          "command": "zipKit.view.delete",
+          "group": "3_modification@2",
+          "when": "view == zipKit.entries && viewItem =~ /^zipKit(Folder|File)Editable$/"
+        }
+      ]
+    }
+  },
+  "capabilities": {
+    "virtualWorkspaces": true
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/vscode": "1.109.0",
+    "eslint": "^10.8.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.66.0"
+  }
+}
