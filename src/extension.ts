@@ -23,93 +23,84 @@ import {
   selectAndZip,
   unzip,
   zip,
-} from "./zipActions";
-import {
-  activateEntryStatusItem as activateEntryStatusBarItem,
-  ZipEntryFileSystem,
-} from "./zipEntryFS";
+} from "./actions";
+import { activateZipEditorRedirect, ZipTree, ZipTreeNode } from "./tree";
 import { activateZipFileExtensions } from "./zipFileExtensions";
 import {
-  activateZipEditorRedirect,
-  ZipTreeNode,
-  ZipTreeProvider,
-} from "./zipTreeView";
+  activateEntryStatusItem as activateEntryStatusBarItem,
+  ZipFileSystem,
+} from "./zipFileSystem";
 
-export const zipEntryScheme = "zip-kit-entry";
-export const zipViewId = "zipKit.entries";
-export const zipEditorViewType = "zipKit.zipEditor";
+export const zipScheme = "zip-file";
+export const zipViewId = "zip.entries"; // TODO rename to "zip.explorer"
+export const zipEditorViewType = "zip.redirectToTree";
 
 export function activate(context: vscode.ExtensionContext): void {
-  const zipEntryFS = new ZipEntryFileSystem();
-  const treeProvider = new ZipTreeProvider(zipEntryFS, context.workspaceState);
+  const zipFileSystem = new ZipFileSystem();
+  const treeProvider = new ZipTree(zipFileSystem, context.workspaceState);
 
   treeProvider.restore();
 
   context.subscriptions.push(
     treeProvider,
-    // zip-kit-entry://<url-encoded-zip-file-uri>/<zip-file-path>/<entry-path>
-    vscode.workspace.registerFileSystemProvider(zipEntryScheme, zipEntryFS, {
+    // zip-file://<url-encoded-zip-file-uri>/<zip-file-path>/<entry-path>
+    vscode.workspace.registerFileSystemProvider(zipScheme, zipFileSystem, {
       isCaseSensitive: true,
       isReadonly: false,
     }),
-    vscode.commands.registerCommand("zipKit.zip", zip),
-    vscode.commands.registerCommand("zipKit.zip.files", () =>
-      selectAndZip(false),
-    ),
-    vscode.commands.registerCommand("zipKit.zip.folders", () =>
+    vscode.commands.registerCommand("zip.zip", zip),
+    vscode.commands.registerCommand("zip.zip.files", () => selectAndZip(false)),
+    vscode.commands.registerCommand("zip.zip.folders", () =>
       selectAndZip(true),
     ),
-    vscode.commands.registerCommand("zipKit.unzip", unzip),
-    vscode.commands.registerCommand("zipKit.unzip.file", selectAndUnzip),
+    vscode.commands.registerCommand("zip.unzip", unzip),
+    vscode.commands.registerCommand("zip.unzip.file", selectAndUnzip),
     vscode.commands.registerCommand(
-      "zipKit.open",
+      "zip.open",
       (uri: vscode.Uri | undefined) => uri && treeProvider.open(uri),
     ),
-    vscode.commands.registerCommand("zipKit.open.file", selectAndOpen),
+    vscode.commands.registerCommand("zip.open.file", selectAndOpen),
     vscode.commands.registerCommand(
-      "zipKit.openContainingZip",
+      "zip.openContainingZip",
       (uri: vscode.Uri | undefined) => openContainingZip(treeProvider, uri),
     ),
-    vscode.commands.registerCommand(
-      "zipKit.view.refresh",
-      (node?: ZipTreeNode) => treeProvider.refresh(node),
+    vscode.commands.registerCommand("zip.view.refresh", (node?: ZipTreeNode) =>
+      treeProvider.refresh(node),
     ),
-    vscode.commands.registerCommand("zipKit.view.close", (node: ZipTreeNode) =>
+    vscode.commands.registerCommand("zip.view.close", (node: ZipTreeNode) =>
       treeProvider.close(node),
     ),
-    vscode.commands.registerCommand("zipKit.view.pin", (node: ZipTreeNode) =>
+    vscode.commands.registerCommand("zip.view.pin", (node: ZipTreeNode) =>
       treeProvider.setPinned(node, true),
     ),
-    vscode.commands.registerCommand("zipKit.view.unpin", (node: ZipTreeNode) =>
+    vscode.commands.registerCommand("zip.view.unpin", (node: ZipTreeNode) =>
       treeProvider.setPinned(node, false),
     ),
-    vscode.commands.registerCommand("zipKit.view.unzip", (node: ZipTreeNode) =>
+    vscode.commands.registerCommand("zip.view.unzip", (node: ZipTreeNode) =>
       treeProvider.unzip(node),
     ),
-    vscode.commands.registerCommand(
-      "zipKit.view.newFile",
-      (node: ZipTreeNode) => treeProvider.createFile(node),
+    vscode.commands.registerCommand("zip.view.newFile", (node: ZipTreeNode) =>
+      treeProvider.createFile(node),
     ),
-    vscode.commands.registerCommand(
-      "zipKit.view.newFolder",
-      (node: ZipTreeNode) => treeProvider.createFolder(node),
+    vscode.commands.registerCommand("zip.view.newFolder", (node: ZipTreeNode) =>
+      treeProvider.createFolder(node),
     ),
-    vscode.commands.registerCommand("zipKit.view.rename", (node: ZipTreeNode) =>
+    vscode.commands.registerCommand("zip.view.rename", (node: ZipTreeNode) =>
       treeProvider.rename(node),
     ),
-    vscode.commands.registerCommand("zipKit.view.delete", (node: ZipTreeNode) =>
+    vscode.commands.registerCommand("zip.view.delete", (node: ZipTreeNode) =>
       treeProvider.delete(node),
     ),
     vscode.commands.registerCommand(
-      "zipKit.view.enableReadOnly",
+      "zip.view.enableReadOnly",
       (node: ZipTreeNode) => treeProvider.setReadOnly(node, true),
     ),
     vscode.commands.registerCommand(
-      "zipKit.view.disableReadOnly",
+      "zip.view.disableReadOnly",
       (node: ZipTreeNode) => treeProvider.setReadOnly(node, false),
     ),
     ...activateZipEditorRedirect(treeProvider),
     ...activateZipFileExtensions(),
-    ...activateEntryStatusBarItem(zipEntryFS),
+    ...activateEntryStatusBarItem(zipFileSystem),
   );
 }

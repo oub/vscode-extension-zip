@@ -1,10 +1,10 @@
 import AdmZip, { IZipEntry } from "adm-zip";
 import { basename, dirname, extname } from "node:path";
 import * as vscode from "vscode";
-import { zipEntryScheme } from "./extension";
+import { zipScheme } from "./extension";
+import { ZipTree } from "./tree";
 import { zipDocumentReloaders } from "./zipDocument";
 import { getZipFileExtensions } from "./zipFileExtensions";
-import { ZipTreeProvider } from "./zipTreeView";
 
 function getActiveEditorUri(): vscode.Uri | undefined {
   const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input as
@@ -55,7 +55,7 @@ async function isDirectory(uri: vscode.Uri): Promise<boolean> {
 }
 
 function openInZipView(uri: vscode.Uri) {
-  return vscode.commands.executeCommand("zipKit.open", uri);
+  return vscode.commands.executeCommand("zip.open", uri);
 }
 
 export async function zip(_: unknown, dirUrls: vscode.Uri[] | undefined) {
@@ -653,11 +653,11 @@ export async function selectAndOpen() {
 }
 
 export async function openContainingZip(
-  treeProvider: ZipTreeProvider,
+  treeProvider: ZipTree,
   uri: vscode.Uri | undefined,
 ) {
   uri ??= getActiveEditorUri();
-  if (uri?.scheme !== zipEntryScheme) return;
+  if (uri?.scheme !== zipScheme) return;
   const zipUri = vscode.Uri.parse(decodeURIComponent(uri.authority));
   await treeProvider.open(zipUri, uri);
 }

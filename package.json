@@ -2,7 +2,7 @@
   "name": "zip",
   "displayName": "Zip",
   "description": "Create, extract, preview, and edit zip and zip-based files in VS Code.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "oub",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -28,14 +28,14 @@
     "zip-based"
   ],
   "activationEvents": [
-    "onFileSystem:zip-kit-entry"
+    "onFileSystem:zip-file"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "ZipKit",
+      "title": "Zip",
       "properties": {
-        "zipKit.zipFileExtensions": {
+        "zip.fileExtensions": {
           "type": "array",
           "items": {
             "type": "string"
@@ -44,14 +44,14 @@
             ".zip"
           ],
           "scope": "window",
-          "markdownDescription": "File extensions that are treated as zip files by the Explorer context menu and the file dialogs. For example, add `.vsix` or `.jar` to unzip and browse those files.\n\nTo also open them in the Zip Explorer when clicking them, associate them with this extension using `#workbench.editorAssociations#`, for example `\"*.vsix\": \"zipKit.zipEditor\"`."
+          "markdownDescription": "File extensions that are treated as zip files by the Explorer context menu and the file dialogs. For example, add `.vsix` or `.jar` to unzip and browse those files.\n\nTo also open them in the Zip Explorer when clicking them, associate them with this extension using `#workbench.editorAssociations#`, for example `\"*.vsix\": \"zip.redirectToTree\"`."
         }
       }
     },
     "customEditors": [
       {
-        "viewType": "zipKit.zipEditor",
-        "displayName": "Zip Explorer",
+        "viewType": "zip.redirectToTree",
+        "displayName": "Zip redirection...",
         "priority": "default",
         "selector": [
           {
@@ -62,289 +62,289 @@
     ],
     "commands": [
       {
-        "command": "zipKit.zip",
+        "command": "zip.zip",
         "title": "Zip...",
-        "category": "ZipKit"
+        "category": "Zip"
       },
       {
-        "command": "zipKit.zip.files",
+        "command": "zip.zip.files",
         "title": "Zip Files...",
-        "category": "ZipKit"
+        "category": "Zip"
       },
       {
-        "command": "zipKit.zip.folders",
+        "command": "zip.zip.folders",
         "title": "Zip Folders...",
-        "category": "ZipKit"
+        "category": "Zip"
       },
       {
-        "command": "zipKit.unzip",
+        "command": "zip.unzip",
         "title": "Unzip...",
-        "category": "ZipKit"
+        "category": "Zip"
       },
       {
-        "command": "zipKit.unzip.file",
+        "command": "zip.unzip.file",
         "title": "Unzip File...",
-        "category": "ZipKit"
+        "category": "Zip"
       },
       {
-        "command": "zipKit.open",
+        "command": "zip.open",
         "title": "Open in Zip Explorer",
-        "category": "ZipKit"
+        "category": "Zip"
       },
       {
-        "command": "zipKit.open.file",
+        "command": "zip.open.file",
         "title": "Open Zip File...",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(folder-opened)"
       },
       {
-        "command": "zipKit.openContainingZip",
+        "command": "zip.openContainingZip",
         "title": "Go to Containing Zip File",
-        "category": "ZipKit",
-        "icon": "$(file-symlink-file)",
-        "enablement": "resourceScheme === 'zip-kit-entry'"
+        "category": "Zip",
+        "icon": "$(file-zip)",
+        "enablement": "resourceScheme === 'zip-file'"
       },
       {
-        "command": "zipKit.view.refresh",
+        "command": "zip.view.refresh",
         "title": "Reload",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(refresh)"
       },
       {
-        "command": "zipKit.view.close",
+        "command": "zip.view.close",
         "title": "Close",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(close)"
       },
       {
-        "command": "zipKit.view.pin",
+        "command": "zip.view.pin",
         "title": "Pin",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(pin)"
       },
       {
-        "command": "zipKit.view.unpin",
+        "command": "zip.view.unpin",
         "title": "Unpin",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(pinned)"
       },
       {
-        "command": "zipKit.view.unzip",
+        "command": "zip.view.unzip",
         "title": "Unzip...",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(archive)"
       },
       {
-        "command": "zipKit.view.newFile",
+        "command": "zip.view.newFile",
         "title": "New File...",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(new-file)"
       },
       {
-        "command": "zipKit.view.newFolder",
+        "command": "zip.view.newFolder",
         "title": "New Folder...",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(new-folder)"
       },
       {
-        "command": "zipKit.view.rename",
+        "command": "zip.view.rename",
         "title": "Rename or Move...",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(rename)"
       },
       {
-        "command": "zipKit.view.delete",
+        "command": "zip.view.delete",
         "title": "Delete",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(trash)"
       },
       {
-        "command": "zipKit.view.enableReadOnly",
+        "command": "zip.view.enableReadOnly",
         "title": "Make Read-only",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(unlock)"
       },
       {
-        "command": "zipKit.view.disableReadOnly",
+        "command": "zip.view.disableReadOnly",
         "title": "Allow Modifications",
-        "category": "ZipKit",
+        "category": "Zip",
         "icon": "$(lock)"
       }
     ],
     "viewsContainers": {
       "secondarySidebar": [
         {
-          "id": "zipKit",
-          "title": "Zip Explorer",
+          "id": "zipViewsContainer",
+          "title": "Zip",
           "icon": "$(file-zip)"
         }
       ]
     },
     "views": {
-      "zipKit": [
+      "zipViewsContainer": [
         {
-          "id": "zipKit.entries",
-          "name": "Zip Explorer",
+          "id": "zip.entries",
+          "name": "Zip",
           "icon": "$(file-zip)",
-          "contextualTitle": "Zip Explorer"
+          "contextualTitle": "Zip"
         }
       ]
     },
     "menus": {
       "commandPalette": [
         {
-          "command": "zipKit.open",
+          "command": "zip.open",
           "when": "false"
         },
         {
-          "command": "zipKit.view.close",
+          "command": "zip.view.close",
           "when": "false"
         },
         {
-          "command": "zipKit.view.pin",
+          "command": "zip.view.pin",
           "when": "false"
         },
         {
-          "command": "zipKit.view.unpin",
+          "command": "zip.view.unpin",
           "when": "false"
         },
         {
-          "command": "zipKit.view.enableReadOnly",
+          "command": "zip.view.enableReadOnly",
           "when": "false"
         },
         {
-          "command": "zipKit.view.disableReadOnly",
+          "command": "zip.view.disableReadOnly",
           "when": "false"
         },
         {
-          "command": "zipKit.view.unzip",
+          "command": "zip.view.unzip",
           "when": "false"
         },
         {
-          "command": "zipKit.view.newFile",
+          "command": "zip.view.newFile",
           "when": "false"
         },
         {
-          "command": "zipKit.view.newFolder",
+          "command": "zip.view.newFolder",
           "when": "false"
         },
         {
-          "command": "zipKit.view.rename",
+          "command": "zip.view.rename",
           "when": "false"
         },
         {
-          "command": "zipKit.view.delete",
+          "command": "zip.view.delete",
           "when": "false"
         }
       ],
       "explorer/context": [
         {
-          "command": "zipKit.open",
+          "command": "zip.open",
           "group": "navigation@40",
-          "when": "resourceExtname in zipKit.zipFileExtensions"
+          "when": "resourceExtname in zip.fileExtensions"
         },
         {
-          "command": "zipKit.zip",
+          "command": "zip.zip",
           "group": "7_modification",
-          "when": "!(resourceExtname in zipKit.zipFileExtensions)"
+          "when": "!(resourceExtname in zip.fileExtensions)"
         },
         {
-          "command": "zipKit.unzip",
+          "command": "zip.unzip",
           "group": "7_modification",
-          "when": "resourceExtname in zipKit.zipFileExtensions"
+          "when": "resourceExtname in zip.fileExtensions"
         }
       ],
       "editor/title": [
         {
-          "command": "zipKit.openContainingZip",
+          "command": "zip.openContainingZip",
           "group": "navigation",
-          "when": "resourceScheme == zip-kit-entry"
+          "when": "resourceScheme == zip-file"
         }
       ],
       "editor/title/context": [
         {
-          "command": "zipKit.openContainingZip",
+          "command": "zip.openContainingZip",
           "group": "2_files",
-          "when": "resourceScheme == zip-kit-entry"
+          "when": "resourceScheme == zip-file"
         }
       ],
       "view/title": [
         {
-          "command": "zipKit.open.file",
+          "command": "zip.open.file",
           "group": "navigation@1",
-          "when": "view == zipKit.entries"
+          "when": "view == zip.entries"
         },
         {
-          "command": "zipKit.view.refresh",
+          "command": "zip.view.refresh",
           "group": "navigation@2",
-          "when": "view == zipKit.entries"
+          "when": "view == zip.entries"
         }
       ],
       "view/item/context": [
         {
-          "command": "zipKit.view.pin",
+          "command": "zip.view.pin",
           "group": "inline@1",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKitRootUnpinned/"
+          "when": "view == zip.entries && viewItem =~ /^zipRootUnpinned/"
         },
         {
-          "command": "zipKit.view.unpin",
+          "command": "zip.view.unpin",
           "group": "inline@1",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKitRootPinned/"
+          "when": "view == zip.entries && viewItem =~ /^zipRootPinned/"
         },
         {
-          "command": "zipKit.view.close",
+          "command": "zip.view.close",
           "group": "inline@2",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKitRoot/"
+          "when": "view == zip.entries && viewItem =~ /^zipRoot/"
         },
         {
-          "command": "zipKit.view.pin",
+          "command": "zip.view.pin",
           "group": "1_pin@1",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKitRootUnpinned/"
+          "when": "view == zip.entries && viewItem =~ /^zipRootUnpinned/"
         },
         {
-          "command": "zipKit.view.unpin",
+          "command": "zip.view.unpin",
           "group": "1_pin@1",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKitRootPinned/"
+          "when": "view == zip.entries && viewItem =~ /^zipRootPinned/"
         },
         {
-          "command": "zipKit.view.close",
+          "command": "zip.view.close",
           "group": "1_pin@2",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKitRoot/"
+          "when": "view == zip.entries && viewItem =~ /^zipRoot/"
         },
         {
-          "command": "zipKit.view.enableReadOnly",
+          "command": "zip.view.enableReadOnly",
           "group": "0_lock",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKitRoot(Pinned|Unpinned)Editable$/"
+          "when": "view == zip.entries && viewItem =~ /^zipRoot(Pinned|Unpinned)Editable$/"
         },
         {
-          "command": "zipKit.view.disableReadOnly",
+          "command": "zip.view.disableReadOnly",
           "group": "0_lock",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKitRoot(Pinned|Unpinned)ReadOnly$/"
+          "when": "view == zip.entries && viewItem =~ /^zipRoot(Pinned|Unpinned)ReadOnly$/"
         },
         {
-          "command": "zipKit.view.newFile",
+          "command": "zip.view.newFile",
           "group": "1_create@1",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKit(Root(Pinned|Unpinned)Editable|FolderEditable)$/"
+          "when": "view == zip.entries && viewItem =~ /^zip(Root(Pinned|Unpinned)Editable|FolderEditable)$/"
         },
         {
-          "command": "zipKit.view.newFolder",
+          "command": "zip.view.newFolder",
           "group": "1_create@2",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKit(Root(Pinned|Unpinned)Editable|FolderEditable)$/"
+          "when": "view == zip.entries && viewItem =~ /^zip(Root(Pinned|Unpinned)Editable|FolderEditable)$/"
         },
         {
-          "command": "zipKit.view.unzip",
+          "command": "zip.view.unzip",
           "group": "9_unzip",
-          "when": "view == zipKit.entries"
+          "when": "view == zip.entries"
         },
         {
-          "command": "zipKit.view.rename",
+          "command": "zip.view.rename",
           "group": "3_modification@1",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKit(Folder|File)Editable$/"
+          "when": "view == zip.entries && viewItem =~ /^zip(Folder|File)Editable$/"
         },
         {
-          "command": "zipKit.view.delete",
+          "command": "zip.view.delete",
           "group": "3_modification@2",
-          "when": "view == zipKit.entries && viewItem =~ /^zipKit(Folder|File)Editable$/"
+          "when": "view == zip.entries && viewItem =~ /^zip(Folder|File)Editable$/"
         }
       ]
     }

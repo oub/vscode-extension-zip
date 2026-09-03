@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import { zipEntryScheme } from "./extension";
+import { zipScheme } from "./extension";
 import { ZipDocument } from "./zipDocument";
 
-export class ZipEntryFileSystem implements vscode.FileSystemProvider {
+export class ZipFileSystem implements vscode.FileSystemProvider {
   private readonly onDidChangeFileEmitter = new vscode.EventEmitter<
     vscode.FileChangeEvent[]
   >();
@@ -33,7 +33,7 @@ export class ZipEntryFileSystem implements vscode.FileSystemProvider {
       vscode.workspace.textDocuments
         .filter(
           (document) =>
-            document.uri.scheme === zipEntryScheme &&
+            document.uri.scheme === zipScheme &&
             !document.isDirty &&
             this.parseUri(document.uri)[0] === zipUriStr,
         )
@@ -330,23 +330,26 @@ export class ZipEntryFileSystem implements vscode.FileSystemProvider {
 }
 
 export function activateEntryStatusItem(
-  zipEntryFS: ZipEntryFileSystem,
+  zipFileSystem: ZipFileSystem,
 ): vscode.Disposable[] {
+  // Priority just above "Editor Selection" (100.5) so this sits immediately to its left
+  const statusItemPriority = 100.55;
+
   const editorItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
-    99.99,
+    statusItemPriority,
   );
-  editorItem.text = "Zip Editor";
+  editorItem.text = "$(file-zip) File from Zip";
   editorItem.tooltip =
-    "File is being read from a zip file editor. Click to open.";
+    "File is being read from a zip file. Click to reveal containing zip.";
 
   const noEditorItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
-    99.99,
+    statusItemPriority,
   );
-  noEditorItem.text = "No Zip Editor";
+  noEditorItem.text = "$(warning-compact) File from Closed Zip";
   noEditorItem.tooltip =
-    "Containing zip file not open. Reading directly from file system. Click to open.";
+    "Containing zip file not open. Reading directly from file system. Click to reopen containing zip.";
   noEditorItem.color = new vscode.ThemeColor("statusBarItem.warningForeground");
   noEditorItem.backgroundColor = new vscode.ThemeColor(
     "statusBarItem.warningBackground",
@@ -360,7 +363,7 @@ export function activateEntryStatusItem(
     activeDocumentListener = undefined;
 
     noEditorItem.command = {
-      command: "zipKit.openContainingZip",
+      command: "zip.openContainingZip",
       title: "Open Zip Editor",
       arguments: [activeUri],
     };
@@ -374,7 +377,7 @@ export function activateEntryStatusItem(
     activeDocumentListener = document.onDidDispose(() => showNoEditor());
 
     editorItem.command = {
-      command: "zipKit.openContainingZip",
+      command: "zip.openContainingZip",
       title: "Show Zip Editor",
       arguments: [activeUri],
     };
@@ -397,17 +400,18 @@ export function activateEntryStatusItem(
         | { uri?: vscode.Uri }
         | undefined
     )?.uri;
-    if (activeUri?.scheme !== zipEntryScheme) return hideBoth();
-    const document = zipEntryFS.getZipFile(activeUri);
+    if (activeUri?.scheme !== zipScheme) return hideBoth();
+    const document = zipFileSystem.getZipFile(activeUri);
     document ? showEditor(document) : showNoEditor();
   };
 
   return [
     editorItem,
     noEditorItem,
-    zipEntryFS.onDidAddZipDocument(([addedZipUriStr, document]) => {
-      if (activeUri?.toString() !== addedZipUriStr) return;
-      showEditor(document);
+    zipFileSystem.onDidAddZipDocument(() => {
+      if (activeUri?.scheme !== zipScheme) return;
+      const document = zipFileSystem.getZipFile(activeUri);
+      if (document) showEditor(document);
     }),
     vscode.window.tabGroups.onDidChangeTabGroups(() => handleTabChange()),
     vscode.window.tabGroups.onDidChangeTabs(() => handleTabChange()),

@@ -1,9 +1,9 @@
 import { basename } from "node:path";
 import * as vscode from "vscode";
-import { zipEditorViewType, zipEntryScheme, zipViewId } from "./extension";
-import { getDisplayPath, unzip, unzipEntry } from "./zipActions";
+import { getDisplayPath, unzip, unzipEntry } from "./actions";
+import { zipEditorViewType, zipScheme, zipViewId } from "./extension";
 import { ZipDocument } from "./zipDocument";
-import { ZipEntryFileSystem } from "./zipEntryFS";
+import { ZipFileSystem } from "./zipFileSystem";
 
 export interface ZipTreeNode {
   readonly uri: vscode.Uri;
@@ -41,16 +41,16 @@ function toItalicSansSerif(text: string): string {
     .join("");
 }
 
-// zip-kit-entry://<url-encoded-zip-file-uri>/<zip-file-path>/<entry-path>
+// zip-file://<url-encoded-zip-file-uri>/<zip-file-path>/<entry-path>
 function getEntryUri(zipUri: vscode.Uri, entryPath = ""): vscode.Uri {
   return vscode.Uri.from({
-    scheme: zipEntryScheme,
+    scheme: zipScheme,
     authority: encodeURIComponent(zipUri.toString()),
     path: entryPath ? `${zipUri.path}/${entryPath}` : zipUri.path,
   });
 }
 
-export class ZipTreeProvider
+export class ZipTree
   implements
     vscode.TreeDataProvider<ZipTreeNode>,
     vscode.TreeDragAndDropController<ZipTreeNode>
@@ -83,7 +83,7 @@ export class ZipTreeProvider
   readonly dragMimeTypes = ["text/uri-list"];
 
   constructor(
-    private readonly zipEntryFS: ZipEntryFileSystem,
+    private readonly zipFileSystem: ZipFileSystem,
     private readonly state: vscode.Memento,
   ) {
     this.view = vscode.window.createTreeView(zipViewId, {
@@ -102,7 +102,7 @@ export class ZipTreeProvider
     if (!openZip || openZip.readOnly === readOnly) return;
 
     openZip.readOnly = readOnly;
-    this.zipEntryFS.setReadOnly(node.zipUri, readOnly);
+    this.zipFileSystem.setReadOnly(node.zipUri, readOnly);
     this.saveOpenZips();
 
     // Children's context values also depend on the zip file's read-only state
@@ -425,7 +425,7 @@ export class ZipTreeProvider
 
   private saveOpenZips(): void {
     this.state.update(
-      ZipTreeProvider.openZipsStateKey,
+      ZipTree.openZipsStateKey,
       [...this.openZips.values()].map(({ document, pinned, readOnly }) => ({
         uri: document.uri.toString(),
         pinned,
@@ -438,7 +438,7 @@ export class ZipTreeProvider
   async restore(): Promise<void> {
     const storedZips = this.state.get<
       { uri: string; pinned: boolean; readOnly?: boolean }[]
-    >(ZipTreeProvider.openZipsStateKey, []);
+    >(ZipTree.openZipsStateKey, []);
 
     for (const { uri, pinned, readOnly } of storedZips) {
       try {
@@ -569,8 +569,8 @@ export class ZipTreeProvider
       ],
     });
 
-    this.zipEntryFS.registerZipFile(document);
-    this.zipEntryFS.setReadOnly(zipUri, readOnly);
+    this.zipFileSystem.registerZipFile(document);
+    this.zipFileSystem.setReadOnly(zipUri, readOnly);
     this.saveOpenZips();
     this.onDidChangeTreeDataEmitter.fire(undefined);
     this.updateMessage();
@@ -648,7 +648,7 @@ export class ZipTreeProvider
     const name = await vscode.window.showInputBox({ prompt: "New file name" });
     if (!name) return;
 
-    await this.zipEntryFS.writeFile(
+    await this.zipFileSystem.writeFile(
       this.getChildUri(node, name),
       new Uint8Array(),
       {
@@ -664,7 +664,7 @@ export class ZipTreeProvider
     });
     if (!name) return;
 
-    await this.zipEntryFS.createDirectory(
+    await this.zipFileSystem.createDirectory(
       this.getChildUri(node, name.endsWith("/") ? name : name + "/"),
     );
   }
@@ -679,7 +679,7 @@ export class ZipTreeProvider
     });
     if (!newPath || newPath === entryPath) return;
 
-    await this.zipEntryFS.rename(
+    await this.zipFileSystem.rename(
       node.uri,
       getEntryUri(node.zipUri, newPath.replace(/\/$/, "") + trailingSlash),
       { overwrite: false },
@@ -687,7 +687,7 @@ export class ZipTreeProvider
   }
 
   async delete(node: ZipTreeNode): Promise<void> {
-    await this.zipEntryFS.delete(node.uri, { recursive: true });
+    await this.zipFileSystem.delete(node.uri, { recursive: true });
   }
 
   async unzip(node: ZipTreeNode): Promise<void> {
@@ -741,10 +741,10 @@ export class ZipTreeProvider
     const readOnlySuffix = openZip?.readOnly ? "ReadOnly" : "Editable";
 
     item.contextValue = isRoot
-      ? `zipKitRoot${openZip?.pinned ? "Pinned" : "Unpinned"}${readOnlySuffix}`
+      ? `zipRoot${openZip?.pinned ? "Pinned" : "Unpinned"}${readOnlySuffix}`
       : isDirectory
-        ? `zipKitFolder${readOnlySuffix}`
-        : `zipKitFile${readOnlySuffix}`;
+        ? `zipFolder${readOnlySuffix}`
+        : `zipFile${readOnlySuffix}`;
     item.tooltip = isRoot
       ? getDisplayPath(node.zipUri)
       : this.getEntryPath(node);
@@ -864,7 +864,7 @@ export class ZipTreeProvider
 
 // Zip files are associated with this editor so that opening one shows the view instead of a tab
 export function activateZipEditorRedirect(
-  treeProvider: ZipTreeProvider,
+  treeProvider: ZipTree,
 ): vscode.Disposable[] {
   const redirect = async (uri: vscode.Uri) => {
     const tabs = vscode.window.tabGroups.all

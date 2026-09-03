@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 
 export const zipDocumentReloaders = new Map<string, () => Promise<void>>();
 
+//TODO:rename to Archive
 export class ZipDocument {
   private readonly onDidChangeEmitter = new vscode.EventEmitter<void>();
   private readonly onDidDisposeEmitter = new vscode.EventEmitter<void>();

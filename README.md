@@ -1,3 +1,102 @@
 # Zip
 
-Create, extract, preview, and edit zip and zip-based files in VS Code.
+> Create, extract, preview, and edit zip and zip-based files in VS Code.
+
+Zip adds first-class archive support to VS Code: build zip files from the Explorer, extract them anywhere, browse their contents in a dedicated tree view, and edit the files inside them with the regular VS Code editors — no temporary folders, no round trips outside the editor.
+
+## Features
+
+- **Create zip files** from any selection of files and folders, with optional store-only (uncompressed) output.
+- **Extract zip files** — either the whole archive or a single entry — with per-file overwrite prompts.
+- **Browse archives** in the _Zip_ view, backed by a virtual file system so entries open in normal editors.
+- **Modify archives in place**: add, rename, move, and delete entries, including drag and drop.
+- **Works with zip-based formats** such as `.vsix`, `.jar`, `.docx`, or `.epub` via a configurable extension list.
+
+## Usage
+
+### Zipping
+
+Right-click files or folders in the Explorer and choose **Zip...**, or run one of the Command Palette commands. An input box asks for the destination path and offers two inline toggles:
+
+| Toggle                | Effect                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Omit top-level folder | Stores the contents of the selected folder at the root of the archive instead of nesting them under the folder name |
+| Store only            | Writes entries uncompressed (compression method `0`)                                                                |
+
+When multiple items are selected, paths inside the archive are made relative to their closest common directory. Progress is reported per entry, and the finished archive can be opened straight from the notification.
+
+### Unzipping
+
+Right-click a zip file and choose **Unzip...**, or use **Zip: Unzip File...** to pick one from a dialog. You can type the destination path or browse for it — the two modes switch back and forth with an inline button. Existing files trigger an overwrite prompt with _Overwrite_, _Skip_, and _…All_ choices.
+
+Individual entries can be extracted the same way from the **Unzip...** item in the _Zip_ view's context menu.
+
+### Browsing and editing
+
+Clicking a zip file in the Explorer opens it in the **Zip** view in the Secondary Side Bar rather than in an editor tab. From there:
+
+- Toggle **Make Read-only** / **Allow Modifications** to guard an archive against accidental edits. The lock applies to the tree view and to any editor opened from it.
+- Click an entry to open it in a normal editor. Saving writes the change back into the archive.
+- Use **New File...**, **New Folder...**, **Rename or Move...**, and **Delete** on entries.
+- Drag files or folders from the Explorer (or your OS) onto an entry to add them to the archive; drag entries within the view to move them, or between two open archives to copy them.
+- Drag a zip file onto the empty area of the view to open it.
+- **Pin** an archive to keep it in the view. Unpinned archives are replaced when another archive is opened, and pinned archives are restored when the workspace is reopened.
+
+A status bar item shows whether the file in the active editor is being read through an open zip archive (**File from Zip**) or directly from disk (**File from Closed Zip**); clicking it reveals or opens the containing archive. The same action is available as **Go to Containing Zip File** in the editor title bar.
+
+## Commands
+
+| Command                          | Description                                                 |
+| -------------------------------- | ----------------------------------------------------------- |
+| `Zip: Zip...`                    | Zip the selected Explorer items or the active editor's file |
+| `Zip: Zip Files...`              | Pick files with a dialog, then zip them                     |
+| `Zip: Zip Folders...`            | Pick folders with a dialog, then zip them                   |
+| `Zip: Unzip...`                  | Extract the selected zip file or the active editor's file   |
+| `Zip: Unzip File...`             | Pick a zip file with a dialog, then extract it              |
+| `Zip: Open Zip File...`          | Pick a zip file with a dialog and open it in the _Zip_ view |
+| `Zip: Go to Containing Zip File` | Reveal the archive that the active editor's file belongs to |
+| `Zip: Reload`                    | Re-read the open archives from disk                         |
+
+## Settings
+
+| Setting              | Default    | Description                                                                            |
+| -------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| `zip.fileExtensions` | `[".zip"]` | File extensions treated as zip files by the Explorer context menu and the file dialogs |
+
+Add zip-based formats to browse and extract them:
+
+```json
+"zip.fileExtensions": [".zip", ".vsix", ".jar"]
+```
+
+To also open those files in the _Zip_ view when they are left-clicked, associate them with the extension's redirect editor (workaround for VS Code's default behavior that does not allow to automatically open files from the Explorer in a custom view):
+
+```json
+"workbench.editorAssociations": {
+	"*.vsix": "zip.redirectToTree"
+}
+```
+
+## How it works
+
+Archive entries are exposed through a `zip-file:` file system provider, using URIs of the form:
+
+```
+zip-file://<url-encoded-zip-file-uri>/<zip-file-path>/<entry-path>
+```
+
+Because entries are ordinary VS Code resources, they work with the standard editors, diffs, language features, and Save. Writes are applied to the in-memory archive and flushed back to the underlying zip file.
+
+## Compatibility
+
+- Requires VS Code `1.109.0` or newer.
+- Supported in both real and virtual workspaces.
+- Reads and writes through `vscode.workspace.fs`, so archives on remote and virtual file systems work as well as local ones.
+
+## Acknowledgments
+
+This extension is based on [ZipKit](https://marketplace.visualstudio.com/items?itemName=brandonfowler.zip-kit) by Brandon Fowler.
+
+## License
+
+[GPL-3.0-or-later](LICENSE)
