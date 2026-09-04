@@ -19,22 +19,6 @@ function isReadOnlyByDefault(): boolean {
   );
 }
 
-// Maps ASCII letters/digits to their Mathematical Sans-Serif Bold Unicode equivalents
-function toBoldSansSerif(text: string): string {
-  return [...text]
-    .map((char) => {
-      const code = char.codePointAt(0)!;
-      if (code >= 65 && code <= 90)
-        return String.fromCodePoint(0x1d5d4 + (code - 65));
-      if (code >= 97 && code <= 122)
-        return String.fromCodePoint(0x1d5ee + (code - 97));
-      if (code >= 48 && code <= 57)
-        return String.fromCodePoint(0x1d7ec + (code - 48));
-      return char;
-    })
-    .join("");
-}
-
 // Maps ASCII letters to their Mathematical Sans-Serif Italic Unicode equivalents
 function toItalicSansSerif(text: string): string {
   return [...text]
@@ -52,12 +36,16 @@ function toItalicSansSerif(text: string): string {
 export class ZipTree
   implements
     vscode.TreeDataProvider<ZipTreeNode>,
-    vscode.TreeDragAndDropController<ZipTreeNode>
+    vscode.TreeDragAndDropController<ZipTreeNode>,
+    vscode.FileDecorationProvider
 {
   private static readonly openZipsStateKey = "openZips";
 
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<
     ZipTreeNode | undefined
+  >();
+  private readonly onDidChangeFileDecorationsEmitter = new vscode.EventEmitter<
+    vscode.Uri | vscode.Uri[] | undefined
   >();
   private readonly openZips = new Map<
     string,
@@ -76,10 +64,14 @@ export class ZipTree
   );
 
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
+  readonly onDidChangeFileDecorations =
+    this.onDidChangeFileDecorationsEmitter.event;
   // Identifies the entries of the view itself while they are being dragged
   private readonly nodesMimeType = `application/vnd.code.tree.${zipViewId.toLowerCase()}`;
   readonly dropMimeTypes = ["text/uri-list", this.nodesMimeType];
   readonly dragMimeTypes = ["text/uri-list"];
+  private readonly decorationProvider =
+    vscode.window.registerFileDecorationProvider(this);
 
   constructor(
     private readonly zipFileSystem: ZipFileSystem,
@@ -96,6 +88,22 @@ export class ZipTree
     return !!this.openZips.get(zipUri.toString())?.readOnly;
   }
 
+  // Badges the zip file (in this view and in the regular Explorer) with its read-only state
+  provideFileDecoration(
+    uri: vscode.Uri,
+  ): vscode.ProviderResult<vscode.FileDecoration> {
+    const openZip = this.openZips.get(uri.toString());
+    if (!openZip) return undefined;
+
+    return openZip.readOnly
+      ? new vscode.FileDecoration("RO", "Read-only")
+      : new vscode.FileDecoration(
+          "RW",
+          "Read-write",
+          new vscode.ThemeColor("list.warningForeground"),
+        );
+  }
+
   setReadOnly(node: ZipTreeNode, readOnly: boolean): void {
     const openZip = this.openZips.get(node.zipUri.toString());
     if (!openZip || openZip.readOnly === readOnly) return;
@@ -106,6 +114,7 @@ export class ZipTree
 
     // Children's context values also depend on the zip file's read-only state
     this.onDidChangeTreeDataEmitter.fire(undefined);
+    this.onDidChangeFileDecorationsEmitter.fire(node.zipUri);
   }
 
   handleDrag(
@@ -572,6 +581,7 @@ export class ZipTree
     this.zipFileSystem.setReadOnly(zipUri, readOnly);
     this.saveOpenZips();
     this.onDidChangeTreeDataEmitter.fire(undefined);
+    this.onDidChangeFileDecorationsEmitter.fire(zipUri);
     this.updateMessage();
   }
 
@@ -648,6 +658,7 @@ export class ZipTree
     }
 
     this.onDidChangeTreeDataEmitter.fire(undefined);
+    this.onDidChangeFileDecorationsEmitter.fire(zipUri);
     this.updateMessage();
   }
 
@@ -738,6 +749,16 @@ export class ZipTree
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   }
 
+  // Folder entries store no size of their own, so this sums the files they contain
+  private getFolderSize(document: ZipDocument, prefix: string): number {
+    return document.zip
+      .getEntries()
+      .filter(
+        (entry) => !entry.isDirectory && entry.entryName.startsWith(prefix),
+      )
+      .reduce((total, entry) => total + entry.header.size, 0);
+  }
+
   async getTreeItem(node: ZipTreeNode): Promise<vscode.TreeItem> {
     const isRoot = this.isRoot(node);
     const isDirectory = node.type === vscode.FileType.Directory;
@@ -770,13 +791,14 @@ export class ZipTree
       if (folderPath !== "") {
         description.push(folderPath);
       }
-      const size = this.formatFileSize(
-        (await vscode.workspace.fs.stat(node.zipUri)).size,
+      const compressedSize = (await vscode.workspace.fs.stat(node.zipUri)).size;
+      const document = openZip?.document;
+      description.push(
+        // Uncompressed total vs. the zip file's actual size on disk
+        document
+          ? `(${this.formatFileSize(this.getFolderSize(document, ""))} ➜ ${this.formatFileSize(compressedSize)})`
+          : `(${this.formatFileSize(compressedSize)})`,
       );
-      description.push(`(${size})`);
-      if (openZip?.readOnly) {
-        description.push("[Read-only]");
-      }
       item.description = description.join(" ");
       item.resourceUri = node.zipUri;
       // ThemeIcon.File forces file-kind icon resolution; otherwise an expandable
@@ -797,6 +819,13 @@ export class ZipTree
         title: "Open File in Zip",
         arguments: [node.uri],
       };
+    } else {
+      // Add the combined size of contained files as description for folders
+      const document = openZip?.document;
+      if (document) {
+        const size = this.getFolderSize(document, this.getEntryPath(node));
+        item.description = `(${this.formatFileSize(size)})`;
+      }
     }
 
     return item;
@@ -870,6 +899,7 @@ export class ZipTree
     this.openZips.clear();
     this.nodes.clear();
     this.renameListener.dispose();
+    this.decorationProvider.dispose();
     this.view.dispose();
   }
 }

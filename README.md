@@ -31,7 +31,7 @@ Individual entries can be extracted the same way from the **Unzip...** item in t
 
 Clicking a zip archive in the Explorer opens it in the **Zip** view in the Secondary Side Bar rather than in an editor tab. From there:
 
-- Toggle **Make Read-only** / **Make Editable** to guard an archive against accidental edits. The lock applies to the tree view and to any editor opened from it. Newly opened archives start read-only unless `zip.archives.defaultOpenMode` is set to `editable`.
+- Toggle **Make Read-only** / **Make Read-write** to guard an archive against accidental edits. The lock applies to the tree view and to any editor opened from it. Newly opened archives start read-only unless `zip.archives.defaultOpenMode` is set to `editable`.
 - Click an entry to open it in a normal editor. Saving writes the change back into the archive.
 - Use **New File...**, **New Folder...**, **Rename or Move...**, and **Delete** on entries.
 - Drag files or folders from the Explorer (or your OS) onto an entry to add them to the archive; drag entries within the view to move them, or between two open archives to copy them.

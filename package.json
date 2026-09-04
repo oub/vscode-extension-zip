@@ -2,7 +2,7 @@
   "name": "zip",
   "displayName": "Zip",
   "description": "Create, preview, edit, and extract zip-based files.",
-  "version": "0.0.8",
+  "version": "0.1.0",
   "publisher": "oub",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -60,7 +60,7 @@
           ],
           "default": "read-only",
           "scope": "window",
-          "markdownDescription": "Whether archives opened in the Zip view can be modified. The mode of an already open archive can be changed at any time with **Make Read-only** and **Make Editable**, and is remembered when the workspace is reopened."
+          "markdownDescription": "Whether archives opened in the Zip view can be modified. The mode of an already open archive can be changed at any time with **Make Read-only** and **Make Read-write**, and is remembered when the workspace is reopened."
         }
       }
     },
@@ -192,7 +192,7 @@
       },
       {
         "command": "zip.view.disableReadOnly",
-        "title": "Make Editable",
+        "title": "Make Read-write",
         "category": "Zip",
         "icon": "$(lock)"
       }
