@@ -112,9 +112,9 @@ export class ZipTree
     source: readonly ZipTreeNode[],
     dataTransfer: vscode.DataTransfer,
   ): void {
-    const nodes = source.filter(
-      (node) => !this.isRoot(node) && !this.isZipReadOnly(node.zipUri),
-    );
+    // Entries of read-only zip files can be dragged since they are only read from,
+    // and dropping them anywhere that would modify their zip file is rejected
+    const nodes = source.filter((node) => !this.isRoot(node));
     if (!nodes.length) return;
 
     // Dropping these URIs on the editor area opens the entries in new tabs
