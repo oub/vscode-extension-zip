@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import { zipScheme } from "./extension";
 import { ZipDocument } from "./zipDocument";
 
-// zip-file://<url-encoded-zip-file-uri>/<zip-file-name>/<entry-path>
+// zip://<url-encoded-zip-file-uri>/<zip-file-name>/<entry-path>
 // The zip file's own location is carried by the authority only, so that paths stay
 // relative to the zip file the way Explorer paths stay relative to the workspace
 export function getEntryUri(zipUri: vscode.Uri, entryPath = ""): vscode.Uri {

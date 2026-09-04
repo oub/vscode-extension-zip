@@ -2,7 +2,7 @@
   "name": "zip",
   "displayName": "Zip",
   "description": "Create, preview, edit, and extract zip-based files.",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "oub",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -28,7 +28,7 @@
     "zip-based"
   ],
   "activationEvents": [
-    "onFileSystem:zip-file",
+    "onFileSystem:zip",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
@@ -78,7 +78,7 @@
     ],
     "resourceLabelFormatters": [
       {
-        "scheme": "zip-file",
+        "scheme": "zip",
         "formatting": {
           "label": "${path}",
           "separator": "/",
@@ -128,7 +128,7 @@
         "title": "Go to Containing Zip Archive",
         "category": "Zip",
         "icon": "$(file-zip)",
-        "enablement": "resourceScheme === 'zip-file'"
+        "enablement": "resourceScheme === 'zip'"
       },
       {
         "command": "zip.view.refresh",
@@ -200,16 +200,16 @@
     "viewsContainers": {
       "secondarySidebar": [
         {
-          "id": "zipViewsContainer",
+          "id": "zip-view-container",
           "title": "Zip",
           "icon": "$(file-zip)"
         }
       ]
     },
     "views": {
-      "zipViewsContainer": [
+      "zip-view-container": [
         {
-          "id": "zip.entries",
+          "id": "zip.explorer",
           "name": "Zip",
           "icon": "$(file-zip)",
           "contextualTitle": "Zip"
@@ -284,93 +284,93 @@
         {
           "command": "zip.openContainingZip",
           "group": "navigation",
-          "when": "resourceScheme == zip-file"
+          "when": "resourceScheme == zip"
         }
       ],
       "editor/title/context": [
         {
           "command": "zip.openContainingZip",
           "group": "2_files",
-          "when": "resourceScheme == zip-file"
+          "when": "resourceScheme == zip"
         }
       ],
       "view/title": [
         {
           "command": "zip.open.file",
           "group": "navigation@1",
-          "when": "view == zip.entries"
+          "when": "view == zip.explorer"
         },
         {
           "command": "zip.view.refresh",
           "group": "navigation@2",
-          "when": "view == zip.entries"
+          "when": "view == zip.explorer"
         }
       ],
       "view/item/context": [
         {
           "command": "zip.view.pin",
           "group": "inline@1",
-          "when": "view == zip.entries && viewItem =~ /^zipRootUnpinned/"
+          "when": "view == zip.explorer && viewItem =~ /^zipRootUnpinned/"
         },
         {
           "command": "zip.view.unpin",
           "group": "inline@1",
-          "when": "view == zip.entries && viewItem =~ /^zipRootPinned/"
+          "when": "view == zip.explorer && viewItem =~ /^zipRootPinned/"
         },
         {
           "command": "zip.view.close",
           "group": "inline@2",
-          "when": "view == zip.entries && viewItem =~ /^zipRoot/"
+          "when": "view == zip.explorer && viewItem =~ /^zipRoot/"
         },
         {
           "command": "zip.view.pin",
           "group": "1_pin@1",
-          "when": "view == zip.entries && viewItem =~ /^zipRootUnpinned/"
+          "when": "view == zip.explorer && viewItem =~ /^zipRootUnpinned/"
         },
         {
           "command": "zip.view.unpin",
           "group": "1_pin@1",
-          "when": "view == zip.entries && viewItem =~ /^zipRootPinned/"
+          "when": "view == zip.explorer && viewItem =~ /^zipRootPinned/"
         },
         {
           "command": "zip.view.close",
           "group": "1_pin@2",
-          "when": "view == zip.entries && viewItem =~ /^zipRoot/"
+          "when": "view == zip.explorer && viewItem =~ /^zipRoot/"
         },
         {
           "command": "zip.view.enableReadOnly",
           "group": "0_lock",
-          "when": "view == zip.entries && viewItem =~ /^zipRoot(Pinned|Unpinned)Editable$/"
+          "when": "view == zip.explorer && viewItem =~ /^zipRoot(Pinned|Unpinned)Editable$/"
         },
         {
           "command": "zip.view.disableReadOnly",
           "group": "0_lock",
-          "when": "view == zip.entries && viewItem =~ /^zipRoot(Pinned|Unpinned)ReadOnly$/"
+          "when": "view == zip.explorer && viewItem =~ /^zipRoot(Pinned|Unpinned)ReadOnly$/"
         },
         {
           "command": "zip.view.newFile",
           "group": "1_create@1",
-          "when": "view == zip.entries && viewItem =~ /^zip(Root(Pinned|Unpinned)Editable|FolderEditable)$/"
+          "when": "view == zip.explorer && viewItem =~ /^zip(Root(Pinned|Unpinned)Editable|FolderEditable)$/"
         },
         {
           "command": "zip.view.newFolder",
           "group": "1_create@2",
-          "when": "view == zip.entries && viewItem =~ /^zip(Root(Pinned|Unpinned)Editable|FolderEditable)$/"
+          "when": "view == zip.explorer && viewItem =~ /^zip(Root(Pinned|Unpinned)Editable|FolderEditable)$/"
         },
         {
           "command": "zip.view.unzip",
           "group": "9_unzip",
-          "when": "view == zip.entries"
+          "when": "view == zip.explorer"
         },
         {
           "command": "zip.view.rename",
           "group": "3_modification@1",
-          "when": "view == zip.entries && viewItem =~ /^zip(Folder|File)Editable$/"
+          "when": "view == zip.explorer && viewItem =~ /^zip(Folder|File)Editable$/"
         },
         {
           "command": "zip.view.delete",
           "group": "3_modification@2",
-          "when": "view == zip.entries && viewItem =~ /^zip(Folder|File)Editable$/"
+          "when": "view == zip.explorer && viewItem =~ /^zip(Folder|File)Editable$/"
         }
       ]
     }

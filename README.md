@@ -81,10 +81,10 @@ The entries follow `zip.fileExtensions` as it changes, and are removed again whe
 
 ## How it works (under the hood)
 
-Archive entries are exposed through a `zip-file:` file system provider, using URIs of the form:
+Archive entries are exposed through a `zip:` file system provider, using URIs of the form:
 
 ```
-zip-file://<url-encoded-zip-file-uri>/<zip-file-name>/<entry-path>
+zip://<url-encoded-zip-file-uri>/<zip-file-name>/<entry-path>
 ```
 
 The zip archive's own location is carried by the authority alone, so entry paths stay relative to the zip archive, the same way Explorer paths stay relative to the workspace. So it is possible to navigate within the archive just like you would within a regular folder structure, using the tree view or the breadcrumb navigation at the top of the editor.
