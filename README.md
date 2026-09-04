@@ -10,7 +10,7 @@ Zip adds first-class archive support to VS Code: build zip archives from the Exp
 - **Extract zip archives** — either the whole archive or a single entry — with per-file overwrite prompts.
 - **Browse archives** in the _Zip_ view, backed by a virtual file system so entries open in normal editors.
 - **Modify archives in place**: add, rename, move, and delete entries, including drag and drop.
-- **Works with zip-based formats** such as `.vsix`, `.jar`, `.docx`, or `.epub` via a configurable extension list.
+- **Works with zip-based formats** such as `.vsix`, `.jar`, `.xlsx`, or `.epub` via a configurable extension list.
 
 ## Usage
 
@@ -59,24 +59,29 @@ A status bar item shows whether the file in the active editor is being read thro
 
 ## Settings
 
-| Setting                        | Default       | Description                                                                            |
-| ------------------------------ | ------------- | -------------------------------------------------------------------------------------- |
-| `zip.archives.defaultOpenMode` | `"read-only"` | Whether archives opened in the _Zip_ view are `read-only` or `editable`                |
-| `zip.fileExtensions`           | `[".zip"]`    | File extensions treated as zip files by the Explorer context menu and the file dialogs |
+| Setting                        | Default             | Description                                                                            |
+| ------------------------------ | ------------------- | -------------------------------------------------------------------------------------- |
+| `zip.archives.defaultOpenMode` | `"read-only"`       | Whether archives opened in the _Zip_ view are `read-only` or `editable`                |
+| `zip.fileExtensions`           | `[".zip", ".vsix"]` | File extensions treated as zip files by the Explorer context menu and the file dialogs |
 
-Add zip-based formats to browse and extract them:
+Replace the list to add your own formats or to narrow it down. Example:
 
 ```json
-"zip.fileExtensions": [".zip", ".vsix", ".jar"]
+"zip.fileExtensions": [".zip", ".ear", ".jar", ".war"]
 ```
 
-To also open those files in the _Zip_ view when they are left-clicked, associate them with the extension's redirect editor (workaround for VS Code's default behavior that does not allow to automatically open files from the Explorer in a custom view):
+Those files open in the _Zip_ view instead of an editor tab when they are left-clicked. This is automatically achieved by keeping one entry per extension in `workbench.editorAssociations` in your user settings. (This is a workaround for VS Code's default behavior that does not allow to automatically open files from the Explorer in a custom view). Example:
 
 ```json
 "workbench.editorAssociations": {
-	"*.vsix": "zip.redirectToTree"
+	"*.zip": "zip.redirectToTree",
+	"*.ear": "zip.redirectToTree",
+	"*.jar": "zip.redirectToTree",
+	"*.war": "zip.redirectToTree"
 }
 ```
+
+The entries follow `zip.fileExtensions` as it changes, and are removed again when the extension is uninstalled.
 
 ## How it works
 

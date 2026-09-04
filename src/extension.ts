@@ -31,9 +31,10 @@ import {
   ZipFileSystem,
 } from "./zipFileSystem";
 
+export { zipEditorViewType } from "./settingsPaths";
+
 export const zipScheme = "zip-file";
 export const zipViewId = "zip.entries"; // TODO rename to "zip.explorer"
-export const zipEditorViewType = "zip.redirectToTree";
 
 export function activate(context: vscode.ExtensionContext): void {
   const zipFileSystem = new ZipFileSystem();
@@ -100,7 +101,7 @@ export function activate(context: vscode.ExtensionContext): void {
       (node: ZipTreeNode) => treeProvider.setReadOnly(node, false),
     ),
     ...activateZipEditorRedirect(treeProvider),
-    ...activateZipFileExtensions(),
+    ...activateZipFileExtensions(context),
     ...activateEntryStatusBarItem(zipFileSystem),
   );
 }

@@ -2,7 +2,7 @@
   "name": "zip",
   "displayName": "Zip",
   "description": "Create, extract, preview, and edit zip and zip-based files in VS Code.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "oub",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -28,7 +28,8 @@
     "zip-based"
   ],
   "activationEvents": [
-    "onFileSystem:zip-file"
+    "onFileSystem:zip-file",
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -41,10 +42,11 @@
             "type": "string"
           },
           "default": [
-            ".zip"
+            ".zip",
+            ".vsix"
           ],
           "scope": "window",
-          "markdownDescription": "File extensions that are treated as zip archives by the Explorer context menu and the file dialogs. For example, add `.vsix` or `.jar` to unzip and browse those files.\n\nTo also open them in the Zip Explorer when clicking them, associate them with this extension using `#workbench.editorAssociations#`, for example `\"*.vsix\": \"zip.redirectToTree\"`."
+          "markdownDescription": "File extensions that are treated as zip archives by the Explorer context menu and the file dialogs.\n\nClicking one of those files opens it in the Zip Explorer instead of a regular editor. This keeps an entry per extension in `#workbench.editorAssociations#` in your user settings, which is removed again when the extension is uninstalled."
         },
         "zip.archives.defaultOpenMode": {
           "type": "string",
@@ -378,12 +380,14 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
+    "vscode:uninstall": "node ./out/uninstall.js",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "lint": "eslint src"
   },
   "dependencies": {
-    "adm-zip": "^0.6.0"
+    "adm-zip": "^0.6.0",
+    "jsonc-parser": "^3.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
