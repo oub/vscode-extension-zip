@@ -61,8 +61,8 @@ A status bar item shows whether the file in the active editor is being read thro
 
 | Setting                        | Default       | Description                                                                            |
 | ------------------------------ | ------------- | -------------------------------------------------------------------------------------- |
-| `zip.fileExtensions`           | `[".zip"]`    | File extensions treated as zip files by the Explorer context menu and the file dialogs |
 | `zip.archives.defaultOpenMode` | `"read-only"` | Whether archives opened in the _Zip_ view are `read-only` or `editable`                |
+| `zip.fileExtensions`           | `[".zip"]`    | File extensions treated as zip files by the Explorer context menu and the file dialogs |
 
 Add zip-based formats to browse and extract them:
 
