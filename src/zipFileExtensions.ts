@@ -59,9 +59,15 @@ async function updateEditorAssociations(
   const isUnchanged =
     patterns.length === Object.keys(current).length &&
     patterns.every((pattern) => current[pattern] === updated[pattern]);
-  if (isUnchanged) return;
 
-  await rememberSettingsPath(context);
+  // Also recorded when nothing changes, since an updated install starts without the file
+  try {
+    await rememberSettingsPath(context);
+  } catch {
+    // The extension folder may not be writable
+  }
+
+  if (isUnchanged) return;
 
   await configuration.update(
     editorAssociationsSection,

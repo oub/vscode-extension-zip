@@ -2,7 +2,7 @@
   "name": "zip",
   "displayName": "Zip",
   "description": "Create, extract, preview, and edit zip and zip-based files in VS Code.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "oub",
   "license": "GPL-3.0-or-later",
   "repository": {
