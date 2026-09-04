@@ -1,7 +1,3 @@
-# Zip
-
-> Create, extract, preview, and edit zip and zip-based files in VS Code.
-
 Zip adds first-class archive support to VS Code: build zip archives from the Explorer, extract them anywhere, browse their contents in a dedicated tree view, and edit the files inside them with the regular VS Code editors — no temporary folders, no round trips outside the editor.
 
 ## Features
@@ -83,7 +79,7 @@ Those files open in the _Zip_ view instead of an editor tab when they are left-c
 
 The entries follow `zip.fileExtensions` as it changes, and are removed again when the extension is uninstalled.
 
-## How it works
+## How it works (under the hood)
 
 Archive entries are exposed through a `zip-file:` file system provider, using URIs of the form:
 
