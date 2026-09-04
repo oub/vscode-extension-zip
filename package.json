@@ -2,7 +2,7 @@
   "name": "zip",
   "displayName": "Zip",
   "description": "Create, extract, preview, and edit zip and zip-based files in VS Code.",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "publisher": "oub",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -44,7 +44,21 @@
             ".zip"
           ],
           "scope": "window",
-          "markdownDescription": "File extensions that are treated as zip files by the Explorer context menu and the file dialogs. For example, add `.vsix` or `.jar` to unzip and browse those files.\n\nTo also open them in the Zip Explorer when clicking them, associate them with this extension using `#workbench.editorAssociations#`, for example `\"*.vsix\": \"zip.redirectToTree\"`."
+          "markdownDescription": "File extensions that are treated as zip archives by the Explorer context menu and the file dialogs. For example, add `.vsix` or `.jar` to unzip and browse those files.\n\nTo also open them in the Zip Explorer when clicking them, associate them with this extension using `#workbench.editorAssociations#`, for example `\"*.vsix\": \"zip.redirectToTree\"`."
+        },
+        "zip.archives.defaultOpenMode": {
+          "type": "string",
+          "enum": [
+            "read-only",
+            "editable"
+          ],
+          "enumDescriptions": [
+            "Archives are protected against accidental changes. Their entries cannot be added, renamed, moved, deleted, or saved.",
+            "Archives and their entries can be modified right away."
+          ],
+          "default": "read-only",
+          "scope": "window",
+          "markdownDescription": "Whether archives opened in the Zip view can be modified. The mode of an already open archive can be changed at any time with **Make Read-only** and **Make Editable**, and is remembered when the workspace is reopened."
         }
       }
     },
@@ -58,6 +72,16 @@
             "filenamePattern": "*.zip"
           }
         ]
+      }
+    ],
+    "resourceLabelFormatters": [
+      {
+        "scheme": "zip-file",
+        "formatting": {
+          "label": "${path}",
+          "separator": "/",
+          "stripPathStartingSeparator": true
+        }
       }
     ],
     "commands": [
@@ -83,7 +107,7 @@
       },
       {
         "command": "zip.unzip.file",
-        "title": "Unzip File...",
+        "title": "Unzip Archive...",
         "category": "Zip"
       },
       {
@@ -93,13 +117,13 @@
       },
       {
         "command": "zip.open.file",
-        "title": "Open Zip File...",
+        "title": "Open Zip Archive...",
         "category": "Zip",
         "icon": "$(folder-opened)"
       },
       {
         "command": "zip.openContainingZip",
-        "title": "Go to Containing Zip File",
+        "title": "Go to Containing Zip Archive",
         "category": "Zip",
         "icon": "$(file-zip)",
         "enablement": "resourceScheme === 'zip-file'"
@@ -166,7 +190,7 @@
       },
       {
         "command": "zip.view.disableReadOnly",
-        "title": "Allow Modifications",
+        "title": "Make Editable",
         "category": "Zip",
         "icon": "$(lock)"
       }

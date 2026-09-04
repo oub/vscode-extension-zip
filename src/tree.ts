@@ -1,14 +1,22 @@
 import { basename } from "node:path";
 import * as vscode from "vscode";
 import { getDisplayPath, unzip, unzipEntry } from "./actions";
-import { zipEditorViewType, zipScheme, zipViewId } from "./extension";
+import { zipEditorViewType, zipViewId } from "./extension";
 import { ZipDocument } from "./zipDocument";
-import { ZipFileSystem } from "./zipFileSystem";
+import { getEntryPath, getEntryUri, ZipFileSystem } from "./zipFileSystem";
 
 export interface ZipTreeNode {
   readonly uri: vscode.Uri;
   readonly zipUri: vscode.Uri;
   type: vscode.FileType;
+}
+
+function isReadOnlyByDefault(): boolean {
+  return (
+    vscode.workspace
+      .getConfiguration()
+      .get<string>("zip.archives.defaultOpenMode", "read-only") !== "editable"
+  );
 }
 
 // Maps ASCII letters/digits to their Mathematical Sans-Serif Bold Unicode equivalents
@@ -39,15 +47,6 @@ function toItalicSansSerif(text: string): string {
       return char;
     })
     .join("");
-}
-
-// zip-file://<url-encoded-zip-file-uri>/<zip-file-path>/<entry-path>
-function getEntryUri(zipUri: vscode.Uri, entryPath = ""): vscode.Uri {
-  return vscode.Uri.from({
-    scheme: zipScheme,
-    authority: encodeURIComponent(zipUri.toString()),
-    path: entryPath ? `${zipUri.path}/${entryPath}` : zipUri.path,
-  });
 }
 
 export class ZipTree
@@ -409,11 +408,11 @@ export class ZipTree
   }
 
   private isRoot(node: ZipTreeNode): boolean {
-    return node.uri.path === node.zipUri.path;
+    return getEntryPath(node.uri) === "";
   }
 
   private getEntryPath(node: ZipTreeNode): string {
-    return node.uri.path.substring(node.zipUri.path.length + 1);
+    return getEntryPath(node.uri);
   }
 
   private getChildUri(node: ZipTreeNode, name: string): vscode.Uri {
@@ -542,7 +541,7 @@ export class ZipTree
   private async addZip(
     zipUri: vscode.Uri,
     pinned = false,
-    readOnly = true,
+    readOnly = isReadOnlyByDefault(),
   ): Promise<void> {
     const key = zipUri.toString();
     const openZip = this.openZips.get(key);
@@ -606,6 +605,22 @@ export class ZipTree
             : vscode.FileType.File,
         )
       : this.getRootNode(zipUri);
+
+    // Revealing a node whose ancestors were never fetched by this view (e.g. a file
+    // opened through the breadcrumbs instead of here) fails, so each ancestor is
+    // revealed in turn first to make the tree resolve them before the target itself
+    const ancestors: ZipTreeNode[] = [];
+    for (let node = this.getParent(target); node; node = this.getParent(node)) {
+      ancestors.unshift(node);
+    }
+
+    for (const ancestor of ancestors) {
+      await this.view.reveal(ancestor, {
+        expand: true,
+        focus: false,
+        select: false,
+      });
+    }
 
     await this.view.reveal(target, {
       expand: true,
@@ -840,13 +855,10 @@ export class ZipTree
     if (this.isRoot(node)) return undefined;
 
     const parentPath = node.uri.path.replace(/\/$/, "").replace(/\/[^/]*$/, "");
-    if (parentPath === node.zipUri.path) return this.getRootNode(node.zipUri);
+    const parentUri = node.uri.with({ path: parentPath + "/" });
+    if (getEntryPath(parentUri) === "") return this.getRootNode(node.zipUri);
 
-    return this.getNode(
-      node.zipUri,
-      node.uri.with({ path: parentPath + "/" }),
-      vscode.FileType.Directory,
-    );
+    return this.getNode(node.zipUri, parentUri, vscode.FileType.Directory);
   }
 
   dispose(): void {

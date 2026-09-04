@@ -2,12 +2,12 @@
 
 > Create, extract, preview, and edit zip and zip-based files in VS Code.
 
-Zip adds first-class archive support to VS Code: build zip files from the Explorer, extract them anywhere, browse their contents in a dedicated tree view, and edit the files inside them with the regular VS Code editors — no temporary folders, no round trips outside the editor.
+Zip adds first-class archive support to VS Code: build zip archives from the Explorer, extract them anywhere, browse their contents in a dedicated tree view, and edit the files inside them with the regular VS Code editors — no temporary folders, no round trips outside the editor.
 
 ## Features
 
-- **Create zip files** from any selection of files and folders, with optional store-only (uncompressed) output.
-- **Extract zip files** — either the whole archive or a single entry — with per-file overwrite prompts.
+- **Create zip archives** from any selection of files and folders, with optional store-only (uncompressed) output.
+- **Extract zip archives** — either the whole archive or a single entry — with per-file overwrite prompts.
 - **Browse archives** in the _Zip_ view, backed by a virtual file system so entries open in normal editors.
 - **Modify archives in place**: add, rename, move, and delete entries, including drag and drop.
 - **Works with zip-based formats** such as `.vsix`, `.jar`, `.docx`, or `.epub` via a configurable extension list.
@@ -27,41 +27,42 @@ When multiple items are selected, paths inside the archive are made relative to 
 
 ### Unzipping
 
-Right-click a zip file and choose **Unzip...**, or use **Zip: Unzip File...** to pick one from a dialog. You can type the destination path or browse for it — the two modes switch back and forth with an inline button. Existing files trigger an overwrite prompt with _Overwrite_, _Skip_, and _…All_ choices.
+Right-click a zip archive and choose **Unzip...**, or use **Zip: Unzip Archive...** to pick one from a dialog. You can type the destination path or browse for it — the two modes switch back and forth with an inline button. Existing files trigger an overwrite prompt with _Overwrite_, _Skip_, and _…All_ choices.
 
 Individual entries can be extracted the same way from the **Unzip...** item in the _Zip_ view's context menu.
 
 ### Browsing and editing
 
-Clicking a zip file in the Explorer opens it in the **Zip** view in the Secondary Side Bar rather than in an editor tab. From there:
+Clicking a zip archive in the Explorer opens it in the **Zip** view in the Secondary Side Bar rather than in an editor tab. From there:
 
-- Toggle **Make Read-only** / **Allow Modifications** to guard an archive against accidental edits. The lock applies to the tree view and to any editor opened from it.
+- Toggle **Make Read-only** / **Make Editable** to guard an archive against accidental edits. The lock applies to the tree view and to any editor opened from it. Newly opened archives start read-only unless `zip.archives.defaultOpenMode` is set to `editable`.
 - Click an entry to open it in a normal editor. Saving writes the change back into the archive.
 - Use **New File...**, **New Folder...**, **Rename or Move...**, and **Delete** on entries.
 - Drag files or folders from the Explorer (or your OS) onto an entry to add them to the archive; drag entries within the view to move them, or between two open archives to copy them.
-- Drag a zip file onto the empty area of the view to open it.
+- Drag a zip archive onto the empty area of the view to open it.
 - **Pin** an archive to keep it in the view. Unpinned archives are replaced when another archive is opened, and pinned archives are restored when the workspace is reopened.
 
-A status bar item shows whether the file in the active editor is being read through an open zip archive (**File from Zip**) or directly from disk (**File from Closed Zip**); clicking it reveals or opens the containing archive. The same action is available as **Go to Containing Zip File** in the editor title bar.
+A status bar item shows whether the file in the active editor is being read through an open zip archive (**Extracted from Zip**) or directly from disk because the archive is closed (**Extracted from Closed Zip**); clicking it reveals or opens the containing archive. The same action is available as **Go to Containing Zip Archive** in the editor title bar.
 
 ## Commands
 
-| Command                          | Description                                                 |
-| -------------------------------- | ----------------------------------------------------------- |
-| `Zip: Zip...`                    | Zip the selected Explorer items or the active editor's file |
-| `Zip: Zip Files...`              | Pick files with a dialog, then zip them                     |
-| `Zip: Zip Folders...`            | Pick folders with a dialog, then zip them                   |
-| `Zip: Unzip...`                  | Extract the selected zip file or the active editor's file   |
-| `Zip: Unzip File...`             | Pick a zip file with a dialog, then extract it              |
-| `Zip: Open Zip File...`          | Pick a zip file with a dialog and open it in the _Zip_ view |
-| `Zip: Go to Containing Zip File` | Reveal the archive that the active editor's file belongs to |
-| `Zip: Reload`                    | Re-read the open archives from disk                         |
+| Command                             | Description                                                 |
+| ----------------------------------- | ----------------------------------------------------------- |
+| `Zip: Zip...`                       | Zip the selected Explorer items or the active editor's file |
+| `Zip: Zip Files...`                 | Pick files with a dialog, then zip them                     |
+| `Zip: Zip Folders...`               | Pick folders with a dialog, then zip them                   |
+| `Zip: Unzip...`                     | Extract the selected zip file or the active editor's file   |
+| `Zip: Unzip Archive...`             | Pick a zip file with a dialog, then extract it              |
+| `Zip: Open Zip Archive...`          | Pick a zip file with a dialog and open it in the _Zip_ view |
+| `Zip: Go to Containing Zip Archive` | Reveal the archive that the active editor's file belongs to |
+| `Zip: Reload`                       | Re-read the open archives from disk                         |
 
 ## Settings
 
-| Setting              | Default    | Description                                                                            |
-| -------------------- | ---------- | -------------------------------------------------------------------------------------- |
-| `zip.fileExtensions` | `[".zip"]` | File extensions treated as zip files by the Explorer context menu and the file dialogs |
+| Setting                        | Default       | Description                                                                            |
+| ------------------------------ | ------------- | -------------------------------------------------------------------------------------- |
+| `zip.fileExtensions`           | `[".zip"]`    | File extensions treated as zip files by the Explorer context menu and the file dialogs |
+| `zip.archives.defaultOpenMode` | `"read-only"` | Whether archives opened in the _Zip_ view are `read-only` or `editable`                |
 
 Add zip-based formats to browse and extract them:
 
@@ -82,10 +83,12 @@ To also open those files in the _Zip_ view when they are left-clicked, associate
 Archive entries are exposed through a `zip-file:` file system provider, using URIs of the form:
 
 ```
-zip-file://<url-encoded-zip-file-uri>/<zip-file-path>/<entry-path>
+zip-file://<url-encoded-zip-file-uri>/<zip-file-name>/<entry-path>
 ```
 
-Because entries are ordinary VS Code resources, they work with the standard editors, diffs, language features, and Save. Writes are applied to the in-memory archive and flushed back to the underlying zip file.
+The zip archive's own location is carried by the authority alone, so entry paths stay relative to the zip archive, the same way Explorer paths stay relative to the workspace. So it is possible to navigate within the archive just like you would within a regular folder structure, using the tree view or the breadcrumb navigation at the top of the editor.
+
+Because entries are ordinary VS Code resources, they work with the standard editors, diffs, language features, and Save. Writes are applied to the in-memory archive and flushed back to the underlying zip archive.
 
 ## Compatibility
 

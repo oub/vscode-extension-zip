@@ -1,6 +1,22 @@
+import { basename } from "node:path";
 import * as vscode from "vscode";
 import { zipScheme } from "./extension";
 import { ZipDocument } from "./zipDocument";
+
+// zip-file://<url-encoded-zip-file-uri>/<zip-file-name>/<entry-path>
+// The zip file's own location is carried by the authority only, so that paths stay
+// relative to the zip file the way Explorer paths stay relative to the workspace
+export function getEntryUri(zipUri: vscode.Uri, entryPath = ""): vscode.Uri {
+  return vscode.Uri.from({
+    scheme: zipScheme,
+    authority: encodeURIComponent(zipUri.toString()),
+    path: `/${basename(zipUri.path)}${entryPath ? `/${entryPath}` : ""}`,
+  });
+}
+
+export function getEntryPath(uri: vscode.Uri): string {
+  return uri.path.split("/").slice(2).join("/");
+}
 
 export class ZipFileSystem implements vscode.FileSystemProvider {
   private readonly onDidChangeFileEmitter = new vscode.EventEmitter<
@@ -61,8 +77,7 @@ export class ZipFileSystem implements vscode.FileSystemProvider {
   private parseUri(uri: vscode.Uri) {
     const zipUriStr = decodeURIComponent(uri.authority);
     const zipUri = vscode.Uri.parse(zipUriStr);
-    const entryPath = uri.path.substring(zipUri.path.length + 1); // +1 to remove the leading slash
-    return [zipUriStr, zipUri, entryPath] as const;
+    return [zipUriStr, zipUri, getEntryPath(uri)] as const;
   }
 
   getZipFile(uri: vscode.Uri): ZipDocument | undefined {
@@ -85,10 +100,10 @@ export class ZipFileSystem implements vscode.FileSystemProvider {
     return [document, entryPath] as const;
   }
 
+  // Both the zip file itself and the virtual folder holding it, which only exists so
+  // that breadcrumbs can start at the zip file name
   private isRoot(uri: vscode.Uri): boolean {
-    const zipUriStr = decodeURIComponent(uri.authority);
-    const zipUri = vscode.Uri.parse(zipUriStr);
-    return uri.path === zipUri.path;
+    return getEntryPath(uri) === "";
   }
 
   private assertWritable(uri: vscode.Uri): void {
@@ -174,6 +189,25 @@ export class ZipFileSystem implements vscode.FileSystemProvider {
       }
     }
 
+    // Folders are not always stored as their own entry, so their presence is
+    // inferred from the entries they contain
+    if (
+      !entry &&
+      document?.zip
+        .getEntries()
+        .some((e) => e.entryName.startsWith(entryPath + "/"))
+    ) {
+      return {
+        type: vscode.FileType.Directory,
+        ctime: Date.now(),
+        mtime: Date.now(),
+        size: 0,
+        permissions: this.readOnlyZips.has(zipUriStr)
+          ? vscode.FilePermission.Readonly
+          : undefined,
+      };
+    }
+
     if (!entry) throw vscode.FileSystemError.FileNotFound(uri);
 
     return {
@@ -190,24 +224,40 @@ export class ZipFileSystem implements vscode.FileSystemProvider {
   }
 
   async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+    const [, zipUri] = this.parseUri(uri);
     const [document, entryPath] = await this.readUri(uri);
     if (!document) throw vscode.FileSystemError.FileNotFound(uri);
 
-    const children =
-      document.zip
-        .getEntries()
-        .filter(
-          (e) =>
-            e.entryName.startsWith(entryPath) &&
-            e.entryName !== entryPath &&
-            e.entryName.slice(entryPath.length).split("/").filter(Boolean)
-              .length === 1,
-        ) ?? [];
+    // The virtual folder above the zip file contains nothing but the zip file
+    if (uri.path === "/")
+      return [[basename(zipUri.path), vscode.FileType.Directory]];
 
-    return children.map((e) => [
-      e.entryName.slice(entryPath.length).replace(/^\//, ""),
-      e.isDirectory ? vscode.FileType.Directory : vscode.FileType.File,
-    ]);
+    // Subfolders are not always stored as their own entry, so they are inferred
+    // from the entries they contain rather than requiring an exact depth-1 match
+    const children = new Map<string, vscode.FileType>();
+    // entryPath itself never has a trailing slash, unlike the zip entry names it's matched against
+    const prefix = entryPath ? entryPath + "/" : "";
+
+    for (const e of document.zip.getEntries()) {
+      if (!e.entryName.startsWith(prefix) || e.entryName === prefix) continue;
+
+      const relativeName = e.entryName.slice(prefix.length);
+      const separator = relativeName.indexOf("/");
+
+      if (separator !== -1) {
+        children.set(
+          relativeName.substring(0, separator),
+          vscode.FileType.Directory,
+        );
+      } else {
+        children.set(
+          relativeName,
+          e.isDirectory ? vscode.FileType.Directory : vscode.FileType.File,
+        );
+      }
+    }
+
+    return [...children];
   }
 
   async createDirectory(uri: vscode.Uri): Promise<void> {
@@ -339,17 +389,17 @@ export function activateEntryStatusItem(
     vscode.StatusBarAlignment.Right,
     statusItemPriority,
   );
-  editorItem.text = "$(file-zip) File from Zip";
+  editorItem.text = "Extracted from Zip";
   editorItem.tooltip =
-    "File is being read from a zip file. Click to reveal containing zip.";
+    "File was extracted from a zip archive.\nClick to reveal the containing zip archive.";
 
   const noEditorItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     statusItemPriority,
   );
-  noEditorItem.text = "$(warning-compact) File from Closed Zip";
+  noEditorItem.text = "$(warning-compact) Extracted from Closed Zip";
   noEditorItem.tooltip =
-    "Containing zip file not open. Reading directly from file system. Click to reopen containing zip.";
+    "File was extracted from a zip archive that is not currently open.\nClick to reopen the containing zip archive.";
   noEditorItem.color = new vscode.ThemeColor("statusBarItem.warningForeground");
   noEditorItem.backgroundColor = new vscode.ThemeColor(
     "statusBarItem.warningBackground",
