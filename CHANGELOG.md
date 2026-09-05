@@ -1,11 +1,19 @@
 # Changelog
 
-## 0.1.0
+## 0.2.0 — 2026-09-06
+
+- Use native picker for selecting folders when Zipping or Unzipping for a cleaner experience.
+- Prompt before overwriting existing files when creating or extracting archives, with an option to apply the choice to all.
+- Add compression options when zipping, including store-only (uncompressed) mode.
+- Add an option to omit the top-level folder when zipping, with a folder picker and input box for the zip file name.
+- Add a settings command and configurable extraction path options for unzipping.
+
+## 0.1.0 — 2026-09-05
 
 - Add `RO` and `RW` decorators for read-only and read-write archives.
 - Rename the **Make Editable** command/setting description to **Make Read-write** for consistency.
 
-## 0.0.8
+## 0.0.8 — 2026-09-04
 
 Initial release.
 
