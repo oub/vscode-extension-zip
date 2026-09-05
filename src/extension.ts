@@ -6,7 +6,7 @@ import {
   selectAndZip,
   unzip,
   zip,
-} from "./actions";
+} from "../out/actions";
 import { activateZipEditorRedirect, ZipTree, ZipTreeNode } from "./tree";
 import { activateZipFileExtensions } from "./zipFileExtensions";
 import {
@@ -38,8 +38,16 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand("zip.zip", zip),
     vscode.commands.registerCommand("zip.zip.files", () => selectAndZip(false)),
+    // Shown instead of zip.zip.files when files.simpleDialog.enable is true, since that dialog can't select many
+    vscode.commands.registerCommand("zip.zip.file", () =>
+      selectAndZip(false, false),
+    ),
     vscode.commands.registerCommand("zip.zip.folders", () =>
       selectAndZip(true),
+    ),
+    // Shown instead of zip.zip.folders when files.simpleDialog.enable is true, since that dialog can't select many
+    vscode.commands.registerCommand("zip.zip.folder", () =>
+      selectAndZip(true, false),
     ),
     vscode.commands.registerCommand("zip.unzip", unzip),
     vscode.commands.registerCommand("zip.unzip.file", selectAndUnzip),

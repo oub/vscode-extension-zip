@@ -1,6 +1,6 @@
 import { basename } from "node:path";
 import * as vscode from "vscode";
-import { getDisplayPath, unzip, unzipEntry } from "./actions";
+import { getDisplayPath, unzip, unzipEntry } from "../out/actions";
 import { zipEditorViewType, zipViewId } from "./extension";
 import { ZipDocument } from "./zipDocument";
 import { getEntryPath, getEntryUri, ZipFileSystem } from "./zipFileSystem";

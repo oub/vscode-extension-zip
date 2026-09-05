@@ -386,11 +386,11 @@ export async function zip(_: unknown, dirUrls: vscode.Uri[] | undefined) {
   }
 }
 
-export async function selectAndZip(folders: boolean) {
+export async function selectAndZip(folders: boolean, many: boolean = true) {
   const selectedUris = await vscode.window.showOpenDialog({
     canSelectFiles: !folders,
     canSelectFolders: folders,
-    canSelectMany: true,
+    canSelectMany: many,
     title: `Select ${folders ? "folders" : "files"} to zip`,
     openLabel: "Zip Selected",
   });

@@ -37,17 +37,19 @@ A status bar item shows whether the file in the active editor is being read thro
 
 ## Commands
 
-| Command                             | Description                                                 |
-| ----------------------------------- | ----------------------------------------------------------- |
-| `Zip: Zip...`                       | Zip the selected Explorer items or the active editor's file |
-| `Zip: Zip Files...`                 | Pick files with a dialog, then zip them                     |
-| `Zip: Zip Folders...`               | Pick folders with a dialog, then zip them                   |
-| `Zip: Unzip...`                     | Extract the selected zip file or the active editor's file   |
-| `Zip: Unzip Archive...`             | Pick a zip file with a dialog, then extract it              |
-| `Zip: Open Zip Archive...`          | Pick a zip file with a dialog and open it in the _Zip_ view |
-| `Zip: Go to Containing Zip Archive` | Reveal the archive that the active editor's file belongs to |
-| `Zip: Reload`                       | Re-read the open archives from disk                         |
-| `Zip: Open Settings`                | Open the extension's settings                               |
+| Command                             | Description                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `Zip: Zip...`                       | Zip the selected Explorer items or the active editor's file (not shown in the Command Palette — right-click in the Explorer instead) |
+| `Zip: Zip Files...`                 | Pick files with a dialog, then zip them (hidden when `files.simpleDialog.enable` is on)                                              |
+| `Zip: Zip File...`                  | Pick a file with a dialog, then zip it (shown instead of **Zip Files...** when `files.simpleDialog.enable` is on)                    |
+| `Zip: Zip Folders...`               | Pick folders with a dialog, then zip them (hidden when `files.simpleDialog.enable` is on)                                            |
+| `Zip: Zip Folder...`                | Pick a folder with a dialog, then zip it (shown instead of **Zip Folders...** when `files.simpleDialog.enable` is on)                |
+| `Zip: Unzip...`                     | Extract the selected zip file or the active editor's file (not shown in the Command Palette — right-click in the Explorer instead)   |
+| `Zip: Unzip Archive...`             | Pick a zip file with a dialog, then extract it                                                                                       |
+| `Zip: Open Zip Archive...`          | Pick a zip file with a dialog and open it in the _Zip_ view                                                                          |
+| `Zip: Go to Containing Zip Archive` | Reveal the archive that the active editor's file belongs to                                                                          |
+| `Zip: Reload`                       | Re-read the open archives from disk                                                                                                  |
+| `Zip: Open Settings`                | Open the extension's settings                                                                                                        |
 
 ## Settings
 

@@ -2,7 +2,7 @@
   "name": "zip",
   "displayName": "Zip",
   "description": "Create, preview, edit, and extract zip-based files.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "oub",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -126,8 +126,18 @@
         "category": "Zip"
       },
       {
+        "command": "zip.zip.file",
+        "title": "Zip File...",
+        "category": "Zip"
+      },
+      {
         "command": "zip.zip.folders",
         "title": "Zip Folders...",
+        "category": "Zip"
+      },
+      {
+        "command": "zip.zip.folder",
+        "title": "Zip Folder...",
         "category": "Zip"
       },
       {
@@ -252,6 +262,30 @@
     },
     "menus": {
       "commandPalette": [
+        {
+          "command": "zip.zip",
+          "when": "false"
+        },
+        {
+          "command": "zip.zip.files",
+          "when": "!config.files.simpleDialog.enable"
+        },
+        {
+          "command": "zip.zip.file",
+          "when": "config.files.simpleDialog.enable"
+        },
+        {
+          "command": "zip.zip.folders",
+          "when": "!config.files.simpleDialog.enable"
+        },
+        {
+          "command": "zip.zip.folder",
+          "when": "config.files.simpleDialog.enable"
+        },
+        {
+          "command": "zip.unzip",
+          "when": "false"
+        },
         {
           "command": "zip.open",
           "when": "false"
