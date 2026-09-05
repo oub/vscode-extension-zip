@@ -128,11 +128,7 @@ function showZipNameInputBox(
 
     const compressionButton = {
       iconPath: {
-        light: vscode.Uri.joinPath(
-          extensionUri,
-          "media",
-          "compress-light.svg",
-        ),
+        light: vscode.Uri.joinPath(extensionUri, "media", "compress-light.svg"),
         dark: vscode.Uri.joinPath(extensionUri, "media", "compress-dark.svg"),
       },
       tooltip: "Compress Zip",
@@ -237,7 +233,11 @@ export async function zip(_: unknown, dirUrls: vscode.Uri[] | undefined) {
     if (!selectedFolder) return;
     folderUri = selectedFolder;
 
-    const result = await showZipNameInputBox(folderUri, fileName, useCompression);
+    const result = await showZipNameInputBox(
+      folderUri,
+      fileName,
+      useCompression,
+    );
 
     if (result.action === "cancel") return;
 
