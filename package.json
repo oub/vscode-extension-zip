@@ -2,7 +2,7 @@
   "name": "zip",
   "displayName": "Zip",
   "description": "Create, preview, edit, and extract zip-based files.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "oub",
   "license": "GPL-3.0-or-later",
   "repository": {

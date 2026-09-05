@@ -12,18 +12,13 @@ Zip adds first-class archive support to VS Code: build zip archives from the Exp
 
 ### Zipping
 
-Right-click files or folders in the Explorer and choose **Zip...**, or run one of the Command Palette commands. An input box asks for the destination path and offers two inline toggles:
+Right-click files or folders in the Explorer and choose **Zip...**, or run one of the Command Palette commands. A native folder picker asks where to save the archive, followed by an input box for the file name with a **Compress Zip** inline toggle (off writes entries uncompressed, compression method `0`) and a back button to return to the folder picker.
 
-| Toggle                | Effect                                                                                                              |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Omit top-level folder | Stores the contents of the selected folder at the root of the archive instead of nesting them under the folder name |
-| Store only            | Writes entries uncompressed (compression method `0`)                                                                |
-
-When multiple items are selected, paths inside the archive are made relative to their closest common directory. Progress is reported per entry, and the finished archive can be opened straight from the notification.
+When zipping a single folder, its contents are nested under the folder's name inside the archive unless `zip.actions.zip.removeTopLevelFolder` is set to `yes`. When multiple items are selected, paths inside the archive are made relative to their closest common directory. Progress is reported per entry, and the finished archive can be opened straight from the notification.
 
 ### Unzipping
 
-Right-click a zip archive and choose **Unzip...**, or use **Zip: Unzip Archive...** to pick one from a dialog. You can type the destination path or browse for it — the two modes switch back and forth with an inline button. Existing files trigger an overwrite prompt with _Overwrite_, _Skip_, and _…All_ choices.
+Right-click a zip archive and choose **Unzip...**, or use **Zip: Unzip Archive...** to pick one from a dialog. A native folder picker asks where to extract the contents. Existing files trigger an overwrite prompt with _Overwrite_, _Skip_, and _…All_ choices. Set `zip.actions.unzip.addFileNameToPath` to `yes` to extract into a new subfolder named after the archive instead of directly into the selected folder.
 
 Individual entries can be extracted the same way from the **Unzip...** item in the _Zip_ view's context menu.
 
@@ -52,13 +47,16 @@ A status bar item shows whether the file in the active editor is being read thro
 | `Zip: Open Zip Archive...`          | Pick a zip file with a dialog and open it in the _Zip_ view |
 | `Zip: Go to Containing Zip Archive` | Reveal the archive that the active editor's file belongs to |
 | `Zip: Reload`                       | Re-read the open archives from disk                         |
+| `Zip: Open Settings`                | Open the extension's settings                               |
 
 ## Settings
 
-| Setting                        | Default             | Description                                                                            |
-| ------------------------------ | ------------------- | -------------------------------------------------------------------------------------- |
-| `zip.archives.defaultOpenMode` | `"read-only"`       | Whether archives opened in the _Zip_ view are `read-only` or `editable`                |
-| `zip.fileExtensions`           | `[".zip", ".vsix"]` | File extensions treated as zip files by the Explorer context menu and the file dialogs |
+| Setting                                | Default             | Description                                                                                                        |
+| -------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `zip.archives.defaultOpenMode`         | `"read-only"`       | Whether archives opened in the _Zip_ view are `read-only` or `editable`                                            |
+| `zip.fileExtensions`                   | `[".zip", ".vsix"]` | File extensions treated as zip files by the Explorer context menu and the file dialogs                             |
+| `zip.actions.zip.removeTopLevelFolder` | `"no"`              | When zipping a single folder, whether to zip its contents directly instead of nesting them under the folder's name |
+| `zip.actions.unzip.addFileNameToPath`  | `"no"`              | Whether to extract into a new subfolder named after the archive instead of directly into the selected folder       |
 
 Replace the list to add your own formats or to narrow it down. Example:
 
