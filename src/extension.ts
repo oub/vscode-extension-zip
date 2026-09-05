@@ -1,5 +1,3 @@
-
-
 import * as vscode from "vscode";
 import {
   openContainingZip,
@@ -21,7 +19,11 @@ export { zipEditorViewType } from "./settingsPaths";
 export const zipScheme = "zip";
 export const zipViewId = "zip.explorer";
 
+export let extensionUri: vscode.Uri;
+
 export function activate(context: vscode.ExtensionContext): void {
+  extensionUri = context.extensionUri;
+
   const zipFileSystem = new ZipFileSystem();
   const treeProvider = new ZipTree(zipFileSystem, context.workspaceState);
 

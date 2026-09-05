@@ -1,7 +1,7 @@
 import AdmZip, { IZipEntry } from "adm-zip";
 import { basename, dirname, extname } from "node:path";
 import * as vscode from "vscode";
-import { zipScheme } from "./extension";
+import { extensionUri, zipScheme } from "./extension";
 import { ZipTree } from "./tree";
 import { zipDocumentReloaders } from "./zipDocument";
 import { getZipFileExtensions } from "./zipFileExtensions";
@@ -54,6 +54,29 @@ async function isDirectory(uri: vscode.Uri): Promise<boolean> {
   }
 }
 
+async function fileExists(uri: vscode.Uri): Promise<boolean> {
+  try {
+    await vscode.workspace.fs.stat(uri);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Asks the user to confirm overwriting an existing file. Returns false if the
+// user declined, in which case the caller should let the user pick another path.
+async function confirmOverwrite(uri: vscode.Uri): Promise<boolean> {
+  if (!(await fileExists(uri))) return true;
+
+  const choice = await vscode.window.showWarningMessage(
+    `A file already exists at "${getDisplayPath(uri)}". Overwrite it?`,
+    { modal: true },
+    "Overwrite",
+  );
+
+  return choice === "Overwrite";
+}
+
 function openInZipView(uri: vscode.Uri) {
   return vscode.commands.executeCommand("zip.open", uri);
 }
@@ -76,10 +99,12 @@ export async function zip(_: unknown, dirUrls: vscode.Uri[] | undefined) {
         );
 
   const input = vscode.window.createInputBox();
-  const baseTitle = "Enter the path for the ZIP file";
+  const baseTitle = "Enter the Zip file path";
   input.title = baseTitle;
   input.value = getDisplayPath(zipUri);
   input.valueSelection = [input.value.length, input.value.length];
+  // Keep the input open while the modal overwrite-confirmation dialog has focus
+  input.ignoreFocusOut = true;
 
   const topLevelName =
     dirUrls.length === 1 && (await isDirectory(dirUrls[0]))
@@ -89,38 +114,71 @@ export async function zip(_: unknown, dirUrls: vscode.Uri[] | undefined) {
     topLevelName === undefined
       ? undefined
       : ({
-          iconPath: new vscode.ThemeIcon("root-folder-opened"),
-          tooltip: `Omit top-level folder (${topLevelName}) from path`,
+          iconPath: {
+            light: vscode.Uri.joinPath(
+              extensionUri,
+              "media",
+              "include-folder-light.svg",
+            ),
+            dark: vscode.Uri.joinPath(
+              extensionUri,
+              "media",
+              "include-folder-dark.svg",
+            ),
+          },
+          tooltip: `Include top-level folder ("${topLevelName}") to inner Zip path`,
           location: vscode.QuickInputButtonLocation.Inline,
-          toggle: { checked: false },
+          toggle: { checked: true },
         } satisfies vscode.QuickInputButton);
 
-  const storeOnlyButton = {
-    iconPath: new vscode.ThemeIcon("zap"),
-    tooltip: "Store only",
+  const compressionButton = {
+    iconPath: {
+      light: vscode.Uri.joinPath(extensionUri, "media", "compress-light.svg"),
+      dark: vscode.Uri.joinPath(extensionUri, "media", "compress-dark.svg"),
+    },
+    tooltip: "Compress Zip",
     location: vscode.QuickInputButtonLocation.Inline,
-    toggle: { checked: false },
+    toggle: { checked: true },
   } satisfies vscode.QuickInputButton;
 
-  const buttons = [];
+  const buttons: vscode.QuickInputButton[] = [];
   if (topLevelButton) buttons.push(topLevelButton);
-  buttons.push(storeOnlyButton);
+  buttons.push(compressionButton);
   input.buttons = buttons;
 
   input.onDidAccept(async () => {
-    input.hide();
-
     const zipPath = input.value.trim();
     if (!zipPath) return;
-    zipUri = withNormalizedDisplayPath(zipUri, zipPath);
+    const candidateUri = withNormalizedDisplayPath(zipUri, zipPath);
 
-    const storeOnly = storeOnlyButton.toggle.checked;
-    const basePath = topLevelButton?.toggle.checked
-      ? dirUrls[0].path
+    // Disable the input while the (potentially modal) confirmation is shown,
+    // then keep the input box open so the user can pick another path if they decline.
+    input.enabled = false;
+    const overwriteConfirmed = await confirmOverwrite(candidateUri);
+    input.enabled = true;
+
+    if (!overwriteConfirmed) {
+      // Bring the input box back to the foreground and reselect the path so
+      // the user can easily amend it.
+      input.valueSelection = [0, input.value.length];
+      input.show();
+      return;
+    }
+
+    zipUri = candidateUri;
+    input.hide();
+
+    const useCompression = compressionButton.toggle.checked;
+    // Only a single selected directory can have its own top-level name excluded;
+    // single files and multi-selections are always relative to their common directory.
+    const basePath = topLevelButton
+      ? topLevelButton.toggle.checked
+        ? commonDir
+        : dirUrls[0].path
       : commonDir;
 
     const processEntry = (entry: IZipEntry) => {
-      if (storeOnly) {
+      if (!useCompression) {
         entry.header.method = 0;
       }
     };
@@ -173,48 +231,75 @@ export async function zip(_: unknown, dirUrls: vscode.Uri[] | undefined) {
 
     const total = zip.getEntries().length;
     let finished = 0;
+    let reportProgress: ((finished: number, total: number) => void) | undefined;
 
-    vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: "Creating zip file...",
-        cancellable: false,
-      },
-      (progress) =>
-        new Promise<void>((resolve, reject) =>
-          zip.toBuffer(
-            async (buffer) => {
-              await vscode.workspace.fs.writeFile(zipUri, buffer);
-              resolve();
+    const bufferPromise = new Promise<Buffer>((resolve, reject) => {
+      zip.toBuffer(
+        (buffer) => resolve(buffer),
+        (error) => reject(error),
+        undefined,
+        () => {
+          finished++;
+          reportProgress?.(finished, total);
+        },
+      );
+    });
 
-              const choice = await vscode.window.showInformationMessage(
-                "Zip file created successfully: " + getDisplayPath(zipUri),
-                "Open",
-              );
+    // Avoid the "Creating zip file..." notification flashing in and out for
+    // zips that finish almost instantly: only show it once creation has been
+    // running for a bit.
+    const showProgressDelayMs = 1000;
+    const stillRunningAfterDelay = await Promise.race([
+      bufferPromise.then(
+        () => false,
+        () => false,
+      ),
+      new Promise<boolean>((resolve) =>
+        setTimeout(() => resolve(true), showProgressDelayMs),
+      ),
+    ]);
 
-              if (choice === "Open") {
-                const reloadExisting = zipDocumentReloaders.get(
-                  zipUri.toString(),
-                );
-                await openInZipView(zipUri);
-                await reloadExisting?.();
+    let buffer: Buffer;
+    try {
+      buffer = stillRunningAfterDelay
+        ? await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: "Creating zip file...",
+              cancellable: false,
+            },
+            (progress) => {
+              // Catch up on entries that were already processed during the delay.
+              if (finished > 0) {
+                progress.report({
+                  increment: (finished / total) * 100,
+                  message: `Processed ${finished} of ${total} entries`,
+                });
               }
+              reportProgress = (finished, total) =>
+                progress.report({
+                  increment: (1 / total) * 100,
+                  message: `Processed ${finished} of ${total} entries`,
+                });
+              return bufferPromise;
             },
-            (error) => {
-              reject();
-              vscode.window.showErrorMessage(
-                "Failed to create zip file: " + error,
-              );
-            },
-            undefined,
-            () =>
-              progress.report({
-                increment: (1 / total) * 100,
-                message: `Processed ${++finished} of ${total} entries`,
-              }),
-          ),
-        ),
-    );
+          )
+        : await bufferPromise;
+    } catch (error) {
+      vscode.window.showErrorMessage("Failed to create zip file: " + error);
+      return;
+    }
+
+    await vscode.workspace.fs.writeFile(zipUri, buffer);
+
+    const reloadExisting = zipDocumentReloaders.get(zipUri.toString());
+    // Select the file in the Explorer view, then open it in the Zip view,
+    // mirroring what clicking the file in the Explorer would do.
+    await vscode.commands.executeCommand("revealInExplorer", zipUri);
+    await openInZipView(zipUri);
+    await reloadExisting?.();
+
+    vscode.window.showInformationMessage("Zip file created successfully.");
   });
 
   input.show();
@@ -378,17 +463,31 @@ async function browseTargetDirectory(
       vscode.QuickPickItem & { uri: vscode.Uri; browse?: boolean }
     >();
     picker.title = browseTitle(truncateMiddle(sourceName, maxSourceNameLength));
-    picker.buttons = toggleButton
-      ? [toggleButton, editButton, closeButton]
-      : [editButton, closeButton];
 
     let currentUri = startUri;
+
+    // Recreated on every navigation so its tooltip reflects the current directory.
+    const updateButtons = () => {
+      const confirmButton: vscode.QuickInputButton = {
+        iconPath: new vscode.ThemeIcon("check"),
+        tooltip: `Unzip to ${getDisplayPath(currentUri)}`,
+        location: vscode.QuickInputButtonLocation.Input,
+      };
+
+      picker.buttons = [
+        ...(toggleButton ? [toggleButton] : []),
+        confirmButton,
+        editButton,
+        closeButton,
+      ];
+    };
 
     const showDirectory = async (uri: vscode.Uri) => {
       currentUri = uri;
       picker.placeholder = getDisplayPath(uri);
       picker.value = "";
       picker.busy = true;
+      updateButtons();
 
       let children: [string, vscode.FileType][] = [];
 
@@ -399,18 +498,11 @@ async function browseTargetDirectory(
       }
 
       const parentUri = vscode.Uri.joinPath(uri, "..");
-      const extractItem = {
-        label: `$(check) Unzip to`,
-        description: `${getDisplayPath(uri)}`,
-        alwaysShow: true,
-        uri,
-      };
 
       picker.items = [
         ...(parentUri.path === uri.path
           ? []
           : [{ label: "$(arrow-up) ..", uri: parentUri, browse: true }]),
-        extractItem,
         ...children
           .filter(([, type]) => type === vscode.FileType.Directory)
           .map(([name]) => name)
@@ -422,7 +514,6 @@ async function browseTargetDirectory(
           })),
       ];
 
-      picker.activeItems = [extractItem];
       picker.busy = false;
     };
 
@@ -445,12 +536,20 @@ async function browseTargetDirectory(
         return;
       }
 
-      if (button !== editButton) return;
+      if (button === editButton) {
+        resolve({
+          uri:
+            currentUri.path === startUri.path ? defaultTargetUri : currentUri,
+          edit: true,
+        });
+        picker.hide();
+        return;
+      }
 
-      resolve({
-        uri: currentUri.path === startUri.path ? defaultTargetUri : currentUri,
-        edit: true,
-      });
+      if (button === toggleButton) return;
+
+      // The confirm button: accept the currently displayed directory.
+      resolve({ uri: currentUri });
       picker.hide();
     });
 
