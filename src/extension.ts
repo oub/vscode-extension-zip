@@ -55,6 +55,12 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("zip.view.refresh", (node?: ZipTreeNode) =>
       treeProvider.refresh(node),
     ),
+    vscode.commands.registerCommand("zip.openSettings", () =>
+      vscode.commands.executeCommand(
+        "workbench.action.openSettings",
+        "@ext:oub.zip",
+      ),
+    ),
     vscode.commands.registerCommand("zip.view.close", (node: ZipTreeNode) =>
       treeProvider.close(node),
     ),

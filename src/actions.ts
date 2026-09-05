@@ -335,6 +335,7 @@ export async function unzip(uri: vscode.Uri | undefined) {
     "",
     uri.with({ path: removeExtension(uri.path) }),
     basename(uri.path),
+    removeExtension(basename(uri.path)),
   );
 }
 
@@ -362,6 +363,7 @@ export async function unzipEntry(
     isDirectory ? entryPath : entryPath.replace(/[^/]*$/, ""),
     isDirectory ? vscode.Uri.joinPath(containingUri, entryName) : containingUri,
     entryName,
+    removeExtension(basename(zipUri.path)),
   );
 }
 
@@ -372,80 +374,13 @@ function truncateMiddle(name: string, maxLength: number): string {
   return `${name.substring(0, half)}\u2026${name.substring(name.length - half)}`;
 }
 
-const browseTitle = (name: string) => `Select the directory to unzip '${name}'`;
-const inputTitle = (name: string) => `Enter the path to unzip '${name}'`;
-
-// Both titles truncate the name the same way so neither wraps to a second row
+// Truncated so the dialog title doesn't wrap to a second row
 const maxSourceNameLength = 36;
 
-const closeButton: vscode.QuickInputButton = {
-  iconPath: new vscode.ThemeIcon("close"),
-  tooltip: "Cancel",
-};
-
-function inputTargetDirectory(
+async function pickTargetDirectory(
   defaultTargetUri: vscode.Uri,
   sourceName: string,
-  toggleButton?: vscode.QuickInputButton,
-): Promise<{ uri: vscode.Uri; browse?: boolean } | undefined> {
-  return new Promise((resolve) => {
-    const browseButton: vscode.QuickInputButton = {
-      iconPath: new vscode.ThemeIcon("folder-opened"),
-      tooltip: "Browse for the folder instead",
-    };
-
-    const input = vscode.window.createInputBox();
-    input.title = inputTitle(truncateMiddle(sourceName, maxSourceNameLength));
-    input.value = getDisplayPath(defaultTargetUri);
-    input.valueSelection = [input.value.length, input.value.length];
-    input.buttons = toggleButton
-      ? [toggleButton, browseButton, closeButton]
-      : [browseButton, closeButton];
-
-    const targetUri = () => {
-      const targetPath = input.value.trim();
-      return targetPath
-        ? withNormalizedDisplayPath(defaultTargetUri, targetPath)
-        : undefined;
-    };
-
-    input.onDidAccept(() => {
-      const uri = targetUri();
-      resolve(uri ? { uri } : undefined);
-      input.hide();
-    });
-
-    input.onDidTriggerButton((button) => {
-      if (button === closeButton) {
-        input.hide();
-        return;
-      }
-
-      if (button !== browseButton) return;
-
-      resolve({ uri: targetUri() ?? defaultTargetUri, browse: true });
-      input.hide();
-    });
-
-    input.onDidHide(() => {
-      resolve(undefined);
-      input.dispose();
-    });
-
-    input.show();
-  });
-}
-
-async function browseTargetDirectory(
-  defaultTargetUri: vscode.Uri,
-  sourceName: string,
-  toggleButton?: vscode.QuickInputButton,
-): Promise<{ uri: vscode.Uri; edit?: boolean } | undefined> {
-  const editButton: vscode.QuickInputButton = {
-    iconPath: new vscode.ThemeIcon("edit"),
-    tooltip: "Enter the path instead",
-  };
-
+): Promise<vscode.Uri | undefined> {
   // Browsing starts at the nearest directory that exists
   let startUri = defaultTargetUri;
 
@@ -456,142 +391,16 @@ async function browseTargetDirectory(
     startUri = parentUri;
   }
 
-  const picked = await new Promise<
-    { uri: vscode.Uri; edit?: boolean } | undefined
-  >((resolve) => {
-    const picker = vscode.window.createQuickPick<
-      vscode.QuickPickItem & { uri: vscode.Uri; browse?: boolean }
-    >();
-    picker.title = browseTitle(truncateMiddle(sourceName, maxSourceNameLength));
-
-    let currentUri = startUri;
-
-    // Recreated on every navigation so its tooltip reflects the current directory.
-    const updateButtons = () => {
-      const confirmButton: vscode.QuickInputButton = {
-        iconPath: new vscode.ThemeIcon("check"),
-        tooltip: `Unzip to ${getDisplayPath(currentUri)}`,
-        location: vscode.QuickInputButtonLocation.Input,
-      };
-
-      picker.buttons = [
-        ...(toggleButton ? [toggleButton] : []),
-        confirmButton,
-        editButton,
-        closeButton,
-      ];
-    };
-
-    const showDirectory = async (uri: vscode.Uri) => {
-      currentUri = uri;
-      picker.placeholder = getDisplayPath(uri);
-      picker.value = "";
-      picker.busy = true;
-      updateButtons();
-
-      let children: [string, vscode.FileType][] = [];
-
-      try {
-        children = await vscode.workspace.fs.readDirectory(uri);
-      } catch {
-        // Directories that cannot be read are shown as empty
-      }
-
-      const parentUri = vscode.Uri.joinPath(uri, "..");
-
-      picker.items = [
-        ...(parentUri.path === uri.path
-          ? []
-          : [{ label: "$(arrow-up) ..", uri: parentUri, browse: true }]),
-        ...children
-          .filter(([, type]) => type === vscode.FileType.Directory)
-          .map(([name]) => name)
-          .sort((nameA, nameB) => nameA.localeCompare(nameB))
-          .map((name) => ({
-            label: `$(folder) ${name}`,
-            uri: vscode.Uri.joinPath(uri, name),
-            browse: true,
-          })),
-      ];
-
-      picker.busy = false;
-    };
-
-    picker.onDidAccept(() => {
-      const item = picker.selectedItems[0];
-      if (!item) return;
-
-      if (item.browse) {
-        showDirectory(item.uri);
-        return;
-      }
-
-      resolve({ uri: item.uri });
-      picker.hide();
-    });
-
-    picker.onDidTriggerButton((button) => {
-      if (button === closeButton) {
-        picker.hide();
-        return;
-      }
-
-      if (button === editButton) {
-        resolve({
-          uri:
-            currentUri.path === startUri.path ? defaultTargetUri : currentUri,
-          edit: true,
-        });
-        picker.hide();
-        return;
-      }
-
-      if (button === toggleButton) return;
-
-      // The confirm button: accept the currently displayed directory.
-      resolve({ uri: currentUri });
-      picker.hide();
-    });
-
-    picker.onDidHide(() => {
-      resolve(undefined);
-      picker.dispose();
-    });
-
-    picker.show();
-    showDirectory(startUri);
+  const selected = await vscode.window.showOpenDialog({
+    canSelectFiles: false,
+    canSelectFolders: true,
+    canSelectMany: false,
+    defaultUri: startUri,
+    title: `Select the directory to unzip '${truncateMiddle(sourceName, maxSourceNameLength)}'`,
+    openLabel: "Unzip Here",
   });
 
-  return picked;
-}
-
-// The two prompts switch to each other until a target directory is picked
-async function pickTargetDirectory(
-  defaultTargetUri: vscode.Uri,
-  sourceName: string,
-  toggleButton?: vscode.QuickInputButton,
-): Promise<vscode.Uri | undefined> {
-  let promptUri = defaultTargetUri;
-
-  for (;;) {
-    const browsed = await browseTargetDirectory(
-      promptUri,
-      sourceName,
-      toggleButton,
-    );
-    if (!browsed) return undefined;
-    if (!browsed.edit) return browsed.uri;
-
-    const typed = await inputTargetDirectory(
-      browsed.uri,
-      sourceName,
-      toggleButton,
-    );
-    if (!typed) return undefined;
-    if (!typed.browse) return typed.uri;
-
-    promptUri = typed.uri;
-  }
+  return selected?.[0];
 }
 
 async function extractEntries(
@@ -599,36 +408,21 @@ async function extractEntries(
   prefix: string,
   defaultTargetUri: vscode.Uri,
   sourceName: string,
+  archiveBaseName: string,
 ) {
   const relativeName = (entry: IZipEntry) =>
     entry.entryName.substring(prefix.length);
-  const topLevelEntries = entries.filter((entry) => {
-    const name = relativeName(entry).replace(/\/$/, "");
-    return name !== "" && !name.includes("/");
-  });
-  const topLevelName =
-    topLevelEntries.length === 1 && topLevelEntries[0].entryName.endsWith("/")
-      ? topLevelEntries[0].name
-      : undefined;
 
-  const topLevelButton =
-    topLevelName === undefined
-      ? undefined
-      : ({
-          iconPath: new vscode.ThemeIcon("root-folder-opened"),
-          tooltip: `Omit top-level folder (${topLevelName}) from path`,
-          location: vscode.QuickInputButtonLocation.Inline,
-          toggle: { checked: topLevelName === basename(defaultTargetUri.path) },
-        } satisfies vscode.QuickInputButton);
+  const pickedUri = await pickTargetDirectory(defaultTargetUri, sourceName);
+  if (!pickedUri) return;
 
-  const targetUri = await pickTargetDirectory(
-    defaultTargetUri,
-    sourceName,
-    topLevelButton,
-  );
-  if (!targetUri) return;
-
-  const removeTopLevel = topLevelButton?.toggle.checked ?? false;
+  const useSubfolder =
+    vscode.workspace
+      .getConfiguration("zip")
+      .get<"no" | "yes">("unzip.addFileNameToPath", "no") === "yes";
+  const targetUri = useSubfolder
+    ? vscode.Uri.joinPath(pickedUri, archiveBaseName)
+    : pickedUri;
 
   const total = entries.length;
   let finished = 0;
@@ -654,10 +448,7 @@ async function extractEntries(
 
           for (const entry of entries) {
             const name = relativeName(entry);
-            const targetEntryUri = vscode.Uri.joinPath(
-              targetUri,
-              removeTopLevel ? name.split("/").slice(1).join("/") : name,
-            );
+            const targetEntryUri = vscode.Uri.joinPath(targetUri, name);
 
             if (entry.isDirectory) {
               await vscode.workspace.fs.createDirectory(targetEntryUri);

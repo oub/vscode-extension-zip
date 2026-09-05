@@ -61,6 +61,20 @@
           "default": "read-only",
           "scope": "window",
           "markdownDescription": "Whether archives opened in the Zip view can be modified. The mode of an already open archive can be changed at any time with **Make Read-only** and **Make Read-write**, and is remembered when the workspace is reopened."
+        },
+        "zip.unzip.addFileNameToPath": {
+          "type": "string",
+          "enum": [
+            "no",
+            "yes"
+          ],
+          "enumDescriptions": [
+            "Unzip directly into the selected folder.",
+            "Unzip into a new subfolder named after the archive."
+          ],
+          "default": "no",
+          "scope": "window",
+          "markdownDescription": "Add file name to path when unzipping. For example, unzipping `archive.zip` into `/target` extracts to `/target` when `no`, or `/target/archive` when `yes`."
         }
       }
     },
@@ -135,6 +149,12 @@
         "title": "Reload",
         "category": "Zip",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "zip.openSettings",
+        "title": "Open Settings",
+        "category": "Zip",
+        "icon": "$(gear)"
       },
       {
         "command": "zip.view.close",
@@ -303,6 +323,11 @@
         {
           "command": "zip.view.refresh",
           "group": "navigation@2",
+          "when": "view == zip.explorer"
+        },
+        {
+          "command": "zip.openSettings",
+          "group": "9_settings",
           "when": "view == zip.explorer"
         }
       ],
