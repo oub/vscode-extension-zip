@@ -62,7 +62,21 @@
           "scope": "window",
           "markdownDescription": "Whether archives opened in the Zip view can be modified. The mode of an already open archive can be changed at any time with **Make Read-only** and **Make Read-write**, and is remembered when the workspace is reopened."
         },
-        "zip.unzip.addFileNameToPath": {
+        "zip.actions.zip.removeTopLevelFolder": {
+          "type": "string",
+          "enum": [
+            "no",
+            "yes"
+          ],
+          "enumDescriptions": [
+            "Keep the single top-level folder as the root inside the Zip file.",
+            "Zip the contents of the single top-level folder directly, without the folder itself."
+          ],
+          "default": "no",
+          "scope": "window",
+          "markdownDescription": "When zipping a single folder, whether to remove that folder itself and zip its contents directly. For example, zipping a folder `project` containing `file.txt` produces `project/file.txt` inside the Zip when `no`, or just `file.txt` when `yes`."
+        },
+        "zip.actions.unzip.addFileNameToPath": {
           "type": "string",
           "enum": [
             "no",

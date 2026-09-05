@@ -36,15 +36,6 @@ export function getDisplayPath(uri: vscode.Uri): string {
   return uri.scheme === "file" ? uri.fsPath : uri.path;
 }
 
-function withNormalizedDisplayPath(uri: vscode.Uri, path: string): vscode.Uri {
-  const normalizedPath =
-    uri.scheme === "file" && process.platform === "win32"
-      ? path.replaceAll("\\", "/")
-      : path;
-
-  return uri.with({ path: normalizedPath });
-}
-
 async function isDirectory(uri: vscode.Uri): Promise<boolean> {
   try {
     const stat = await vscode.workspace.fs.stat(uri);
@@ -81,6 +72,139 @@ function openInZipView(uri: vscode.Uri) {
   return vscode.commands.executeCommand("zip.open", uri);
 }
 
+// Step A: a native folder picker, opened at the folder that currently
+// contains the (proposed) Zip file.
+async function pickZipFolder(
+  defaultFolderUri: vscode.Uri,
+): Promise<vscode.Uri | undefined> {
+  // Browsing starts at the nearest directory that exists
+  let startUri = defaultFolderUri;
+  while (!(await isDirectory(startUri))) {
+    const parentUri = vscode.Uri.joinPath(startUri, "..");
+    if (parentUri.path === startUri.path) break;
+    startUri = parentUri;
+  }
+
+  const selected = await vscode.window.showOpenDialog({
+    canSelectFiles: false,
+    canSelectFolders: true,
+    canSelectMany: false,
+    defaultUri: startUri,
+    title: "Select where to store the Zip file",
+    openLabel: "Select Folder",
+  });
+
+  return selected?.[0];
+}
+
+type ZipNameStepResult =
+  | { action: "cancel" }
+  | {
+      action: "back";
+      fileName: string;
+      useCompression: boolean;
+    }
+  | {
+      action: "confirmed";
+      zipUri: vscode.Uri;
+      useCompression: boolean;
+    };
+
+// Step B: an inputbox for the file name, with a reminder of the folder
+// selected in step A and a back button to return to the folder picker.
+function showZipNameInputBox(
+  folderUri: vscode.Uri,
+  defaultFileName: string,
+  defaultUseCompression: boolean,
+): Promise<ZipNameStepResult> {
+  return new Promise((resolve) => {
+    const input = vscode.window.createInputBox();
+    input.title = "Enter the Zip file name";
+    input.prompt = `Will be saved in: ${getDisplayPath(folderUri)}`;
+    input.value = defaultFileName;
+    input.valueSelection = [input.value.length, input.value.length];
+    // Keep the input open while the modal overwrite-confirmation dialog has focus
+    input.ignoreFocusOut = true;
+
+    const compressionButton = {
+      iconPath: {
+        light: vscode.Uri.joinPath(
+          extensionUri,
+          "media",
+          "compress-light.svg",
+        ),
+        dark: vscode.Uri.joinPath(extensionUri, "media", "compress-dark.svg"),
+      },
+      tooltip: "Compress Zip",
+      location: vscode.QuickInputButtonLocation.Inline,
+      toggle: { checked: defaultUseCompression },
+    } satisfies vscode.QuickInputButton;
+
+    input.buttons = [vscode.QuickInputButtons.Back, compressionButton];
+
+    let settled = false;
+    const finish = (result: ZipNameStepResult) => {
+      if (settled) return;
+      settled = true;
+      input.dispose();
+      resolve(result);
+    };
+
+    input.onDidTriggerButton((button) => {
+      if (button !== vscode.QuickInputButtons.Back) return;
+      finish({
+        action: "back",
+        fileName: input.value.trim() || defaultFileName,
+        useCompression: compressionButton.toggle.checked,
+      });
+    });
+
+    input.onDidHide(() => finish({ action: "cancel" }));
+
+    input.onDidAccept(async () => {
+      const fileName = input.value.trim();
+      if (!fileName) return;
+      const normalizedFileName =
+        folderUri.scheme === "file" && process.platform === "win32"
+          ? fileName.replaceAll("\\", "/")
+          : fileName;
+      const candidateUri = vscode.Uri.joinPath(folderUri, normalizedFileName);
+
+      // Disable the input while the (potentially modal) confirmation is shown,
+      // then keep the input box open so the user can pick another name if they decline.
+      input.enabled = false;
+      const overwriteConfirmed = await confirmOverwrite(candidateUri);
+      input.enabled = true;
+
+      if (!overwriteConfirmed) {
+        // Bring the input box back to the foreground and reselect the name so
+        // the user can easily amend it.
+        input.valueSelection = [0, input.value.length];
+        input.show();
+        return;
+      }
+
+      finish({
+        action: "confirmed",
+        zipUri: candidateUri,
+        useCompression: compressionButton.toggle.checked,
+      });
+    });
+
+    input.show();
+  });
+}
+
+// Whether to remove the single top-level folder when zipping just one directory;
+// kept as a hidden user setting rather than an in-flow toggle.
+function shouldRemoveTopLevelFolder(): boolean {
+  return (
+    vscode.workspace
+      .getConfiguration("zip")
+      .get<"no" | "yes">("actions.zip.removeTopLevelFolder", "no") === "yes"
+  );
+}
+
 export async function zip(_: unknown, dirUrls: vscode.Uri[] | undefined) {
   if (!dirUrls?.[0]) {
     const activeUri = getActiveEditorUri();
@@ -90,7 +214,7 @@ export async function zip(_: unknown, dirUrls: vscode.Uri[] | undefined) {
   if (!dirUrls?.[0]) return;
 
   const commonDir = commonDirPath(dirUrls);
-  let zipUri =
+  const defaultZipUri =
     dirUrls.length === 1
       ? dirUrls[0].with({ path: removeExtension(dirUrls[0].path) + ".zip" })
       : vscode.Uri.joinPath(
@@ -98,85 +222,44 @@ export async function zip(_: unknown, dirUrls: vscode.Uri[] | undefined) {
           basename(commonDir) + ".zip",
         );
 
-  const input = vscode.window.createInputBox();
-  const baseTitle = "Enter the Zip file path";
-  input.title = baseTitle;
-  input.value = getDisplayPath(zipUri);
-  input.valueSelection = [input.value.length, input.value.length];
-  // Keep the input open while the modal overwrite-confirmation dialog has focus
-  input.ignoreFocusOut = true;
-
   const topLevelName =
     dirUrls.length === 1 && (await isDirectory(dirUrls[0]))
       ? basename(dirUrls[0].path)
       : undefined;
-  let topLevelButton =
-    topLevelName === undefined
-      ? undefined
-      : ({
-          iconPath: {
-            light: vscode.Uri.joinPath(
-              extensionUri,
-              "media",
-              "include-folder-light.svg",
-            ),
-            dark: vscode.Uri.joinPath(
-              extensionUri,
-              "media",
-              "include-folder-dark.svg",
-            ),
-          },
-          tooltip: `Include top-level folder ("${topLevelName}") to inner Zip path`,
-          location: vscode.QuickInputButtonLocation.Inline,
-          toggle: { checked: true },
-        } satisfies vscode.QuickInputButton);
 
-  const compressionButton = {
-    iconPath: {
-      light: vscode.Uri.joinPath(extensionUri, "media", "compress-light.svg"),
-      dark: vscode.Uri.joinPath(extensionUri, "media", "compress-dark.svg"),
-    },
-    tooltip: "Compress Zip",
-    location: vscode.QuickInputButtonLocation.Inline,
-    toggle: { checked: true },
-  } satisfies vscode.QuickInputButton;
+  let folderUri = vscode.Uri.joinPath(defaultZipUri, "..");
+  let fileName = basename(defaultZipUri.path);
+  let useCompression = true;
+  let zipUri: vscode.Uri;
 
-  const buttons: vscode.QuickInputButton[] = [];
-  if (topLevelButton) buttons.push(topLevelButton);
-  buttons.push(compressionButton);
-  input.buttons = buttons;
+  for (;;) {
+    const selectedFolder = await pickZipFolder(folderUri);
+    if (!selectedFolder) return;
+    folderUri = selectedFolder;
 
-  input.onDidAccept(async () => {
-    const zipPath = input.value.trim();
-    if (!zipPath) return;
-    const candidateUri = withNormalizedDisplayPath(zipUri, zipPath);
+    const result = await showZipNameInputBox(folderUri, fileName, useCompression);
 
-    // Disable the input while the (potentially modal) confirmation is shown,
-    // then keep the input box open so the user can pick another path if they decline.
-    input.enabled = false;
-    const overwriteConfirmed = await confirmOverwrite(candidateUri);
-    input.enabled = true;
+    if (result.action === "cancel") return;
 
-    if (!overwriteConfirmed) {
-      // Bring the input box back to the foreground and reselect the path so
-      // the user can easily amend it.
-      input.valueSelection = [0, input.value.length];
-      input.show();
-      return;
+    useCompression = result.useCompression;
+
+    if (result.action === "back") {
+      fileName = result.fileName;
+      continue;
     }
 
-    zipUri = candidateUri;
-    input.hide();
+    zipUri = result.zipUri;
+    break;
+  }
 
-    const useCompression = compressionButton.toggle.checked;
-    // Only a single selected directory can have its own top-level name excluded;
-    // single files and multi-selections are always relative to their common directory.
-    const basePath = topLevelButton
-      ? topLevelButton.toggle.checked
-        ? commonDir
-        : dirUrls[0].path
+  // Only a single selected directory can have its own top-level name excluded;
+  // single files and multi-selections are always relative to their common directory.
+  const basePath =
+    topLevelName !== undefined && shouldRemoveTopLevelFolder()
+      ? dirUrls[0].path
       : commonDir;
 
+  {
     const processEntry = (entry: IZipEntry) => {
       if (!useCompression) {
         entry.header.method = 0;
@@ -300,9 +383,7 @@ export async function zip(_: unknown, dirUrls: vscode.Uri[] | undefined) {
     await reloadExisting?.();
 
     vscode.window.showInformationMessage("Zip file created successfully.");
-  });
-
-  input.show();
+  }
 }
 
 export async function selectAndZip(folders: boolean) {
@@ -419,7 +500,7 @@ async function extractEntries(
   const useSubfolder =
     vscode.workspace
       .getConfiguration("zip")
-      .get<"no" | "yes">("unzip.addFileNameToPath", "no") === "yes";
+      .get<"no" | "yes">("actions.unzip.addFileNameToPath", "no") === "yes";
   const targetUri = useSubfolder
     ? vscode.Uri.joinPath(pickedUri, archiveBaseName)
     : pickedUri;
