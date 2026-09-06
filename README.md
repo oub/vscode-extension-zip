@@ -1,4 +1,4 @@
-Zip adds first-class archive support to VS Code: build zip archives from the Explorer, extract them anywhere, browse their contents in a dedicated tree view, and edit the files inside them with the regular VS Code editors — no temporary folders, no round trips outside the editor.
+This extension adds first-class archive support to VS Code: build zip archives from the Explorer, extract them anywhere, browse their contents in a dedicated tree view, and edit the files inside them with the regular VS Code editors — no temporary folders, no round trips outside the editor.
 
 ## Features
 

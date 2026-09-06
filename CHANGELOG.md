@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.2 — unreleased
+## 0.2.2 — 2026-09-06
 
 - Remove `Zip: Zip...` and `Zip: Unzip...` from the Command Palette; use the Explorer context menu instead.
 - Add `Zip: Zip File...` and `Zip: Zip Folder...`, single-select equivalents of `Zip: Zip Files...` and `Zip: Zip Folders...` shown instead of them in the Command Palette when `files.simpleDialog.enable` is on, since that dialog doesn't support selecting multiple items.

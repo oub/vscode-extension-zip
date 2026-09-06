@@ -6,7 +6,7 @@ import {
   selectAndZip,
   unzip,
   zip,
-} from "../out/actions";
+} from "./actions";
 import { activateZipEditorRedirect, ZipTree, ZipTreeNode } from "./tree";
 import { activateZipFileExtensions } from "./zipFileExtensions";
 import {
