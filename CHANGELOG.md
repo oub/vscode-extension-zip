@@ -13,7 +13,7 @@
 
 - Fix README to reflect the native folder pickers, the Zip file name input box's compression toggle, and the new settings for omitting the top-level folder when zipping and adding the archive name to the path when unzipping.
 
-## 0.2.0 — 2026-09-06
+## 0.2.0 — 2026-09-05
 
 - Use native picker for selecting folders when Zipping or Unzipping for a cleaner experience.
 - Prompt before overwriting existing files when creating or extracting archives, with an option to apply the choice to all.
