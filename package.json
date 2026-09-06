@@ -2,7 +2,7 @@
   "name": "zip",
   "displayName": "Zip",
   "description": "Create, preview, edit, and extract zip-based files.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "publisher": "oub",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -340,7 +340,7 @@
         {
           "command": "zip.zip",
           "group": "7_modification",
-          "when": "!(resourceExtname in zip.fileExtensions)"
+          "when": "(resourceScheme == file || resourceScheme == vscode-remote) && !(resourceExtname in zip.fileExtensions)"
         },
         {
           "command": "zip.unzip",

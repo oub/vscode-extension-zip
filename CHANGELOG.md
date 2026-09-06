@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3 — unreleased yet
+
+- Fix `Zip...` showing in the Explorer context menu when right-clicking empty space with no selection.
+
 ## 0.2.2 — 2026-09-06
 
 - Remove `Zip: Zip...` and `Zip: Unzip...` from the Command Palette; use the Explorer context menu instead.
